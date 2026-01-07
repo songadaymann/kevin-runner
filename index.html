@@ -24,21 +24,6 @@
       display: block;
       touch-action: none;
     }
-    .hud {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 8px 10px;
-      border-radius: 6px;
-      font-size: 14px;
-      line-height: 1.4;
-      opacity: 0;
-      transition: opacity 0.5s;
-    }
-    .hud.visible {
-      opacity: 1;
-    }
     /* Intro overlay */
     #intro-overlay {
       position: absolute;
@@ -341,10 +326,6 @@
   <div id="intro-overlay">
     <div id="intro-big"></div>
     <div id="intro-small"></div>
-  </div>
-  
-  <div class="hud">
-    Move: A/D or ←/→. Punch: Space. Touch: drag to steer.
   </div>
   
   <!-- Combo display -->
@@ -1643,8 +1624,6 @@
       const introOverlay = document.getElementById('intro-overlay');
       const introBig = document.getElementById('intro-big');
       const introSmall = document.getElementById('intro-small');
-      const hudElement = document.querySelector('.hud');
-      
       // Intro camera keyframes
       const introCamStart = { x: 0, y: 7.5, z: 4.41 };   // start position (close)
       const introCamMid = { x: 0, y: 7.5, z: -7.04 };    // at 7 seconds (pulled back)
@@ -1955,7 +1934,6 @@
             introBig.classList.remove('visible');
             introSmall.classList.remove('visible');
             introOverlay.style.display = 'none';
-            hudElement.classList.add('visible');
             scoreDisplay.classList.add('visible');
             console.log('🎬 Intro complete!');
           }
@@ -2298,7 +2276,6 @@
           startOverlay.classList.add('hidden');
           introComplete = true;
           introOverlay.style.display = 'none';
-          hudElement.classList.add('visible');
           scoreDisplay.classList.add('visible');
         }
         
