@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files (if any)
+.env
+.env.local
+.env.*.local
+
+# Human-only working files (not needed in production)
+human-stuff-ignore/
+
+# Source FBX files (only need compiled GLB)
+*.fbx
+*.fbm/
+
+# Unoptimized punk GLBs (keep only *_optimized.glb)
+assets/punks/*/beanie_running.glb
+assets/punks/*/blonde_running.glb
+assets/punks/*/green_running.glb
+assets/punks/*/hoody_running.glb
+assets/punks/*/myPunk_running.glb
+assets/punks/*/purple_running.glb
+assets/punks/*/zombie_running.glb
+
+# Kevin source files we don't need
+assets/kevin/fbx/
+assets/kevin/glb/kevin_v0.glb
+assets/kevin/glb/kevinv0.1.glb
+assets/kevin/glb/kevin_mixamo_withskin.glb
+
+# Alien punk files (not used in current build)
+assets/punks/alienPunk/
+assets/punks/apePunk/
+
+# Segment files (not used)
+assets/segments/
+
+# Skybox (not used - using procedural shader)
+assets/jungle-skybox.hdr
+
+# Vercel
+.vercel/

@@ -1,0 +1,2345 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kevin Runner</title>
+  <!-- Google Fonts: Metal Mania (main) + Kranky (small) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kranky&family=Metal+Mania&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #0a0a1a;
+      color: #e7f5ed;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    #renderCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+    .hud {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1.4;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .hud.visible {
+      opacity: 1;
+    }
+    /* Intro overlay */
+    #intro-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #intro-big {
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(32px, 8vw, 72px);
+      color: #ff2222;
+      text-shadow: 0 0 20px #ff2222, 0 0 40px #ff0000, 0 0 60px #aa0000, 4px 4px 0 #000;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+      margin-bottom: 20px;
+    }
+    #intro-small {
+      font-family: 'Kranky', cursive;
+      font-size: clamp(14px, 3vw, 24px);
+      color: #88aaff;
+      text-shadow: 0 0 10px #88aaff, 0 0 20px #4466cc, 2px 2px 0 #000;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+      letter-spacing: 2px;
+    }
+    #intro-big.visible, #intro-small.visible {
+      opacity: 1;
+    }
+    /* Start overlay */
+    #start-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      cursor: pointer;
+    }
+    #start-overlay.hidden {
+      display: none;
+    }
+    #start-text {
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(24px, 6vw, 48px);
+      color: #ff3333;
+      text-shadow: 0 0 20px #ff3333, 0 0 40px #cc0000, 3px 3px 0 #000;
+      animation: pulse 1.5s ease-in-out infinite;
+      letter-spacing: 4px;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+    }
+    /* Score counters */
+    #score-display {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      text-align: right;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    #score-display.visible {
+      opacity: 1;
+    }
+    #punches-counter {
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(24px, 5vw, 48px);
+      color: #00ff00;
+      text-shadow: 0 0 10px #00ff00, 0 0 20px #00aa00, 3px 3px 0 #000;
+    }
+    #hits-counter {
+      font-family: 'Kranky', cursive;
+      font-size: clamp(18px, 3vw, 32px);
+      color: #ff4444;
+      text-shadow: 0 0 10px #ff4444, 0 0 20px #aa0000, 2px 2px 0 #000;
+      margin-top: 5px;
+    }
+    /* Combo display */
+    #combo-display {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(36px, 10vw, 80px);
+      color: #ffff00;
+      text-shadow: 0 0 20px #ffff00, 0 0 40px #ffaa00, 0 0 60px #ff6600, 4px 4px 0 #000;
+      text-align: center;
+      pointer-events: none;
+      z-index: 150;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    #combo-display.visible {
+      opacity: 1;
+      animation: comboPop 0.5s ease-out;
+    }
+    @keyframes comboPop {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+    /* End screen */
+    #end-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 300;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1s, background 2s;
+    }
+    #end-screen.visible {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.85);
+      pointer-events: auto;
+    }
+    #end-title {
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(40px, 12vw, 100px);
+      color: #ff3333;
+      text-shadow: 0 0 30px #ff3333, 0 0 60px #cc0000, 6px 6px 0 #000;
+      margin-bottom: 30px;
+    }
+    #end-stats {
+      font-family: 'Kranky', cursive;
+      font-size: clamp(20px, 5vw, 40px);
+      color: #88ffaa;
+      text-shadow: 0 0 15px #88ffaa, 3px 3px 0 #000;
+      text-align: center;
+      line-height: 1.8;
+    }
+    #end-stats .stat-value {
+      color: #ffff00;
+      font-family: 'Metal Mania', cursive;
+    }
+    /* Mobile controls */
+    #mobile-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: none;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 20px;
+      z-index: 100;
+      pointer-events: none;
+    }
+    #mobile-controls.visible {
+      display: flex;
+    }
+    .mobile-dpad {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+    .mobile-btn {
+      width: clamp(50px, 12vw, 70px);
+      height: clamp(50px, 12vw, 70px);
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: clamp(20px, 6vw, 32px);
+      color: rgba(255, 255, 255, 0.8);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      pointer-events: auto;
+      transition: background 0.1s, transform 0.1s;
+    }
+    .mobile-btn:active, .mobile-btn.pressed {
+      background: rgba(255, 100, 100, 0.4);
+      transform: scale(0.95);
+    }
+    .mobile-btn-action {
+      width: clamp(70px, 18vw, 100px);
+      height: clamp(70px, 18vw, 100px);
+      background: rgba(255, 50, 50, 0.3);
+      border: 3px solid rgba(255, 100, 100, 0.6);
+      border-radius: 50%;
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(14px, 4vw, 20px);
+      color: #ff6666;
+      text-shadow: 0 0 10px #ff3333;
+    }
+    .mobile-btn-action:active, .mobile-btn-action.pressed {
+      background: rgba(255, 100, 100, 0.6);
+      box-shadow: 0 0 20px rgba(255, 100, 100, 0.8);
+    }
+    /* Loading screen */
+    #loading-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a0a1a;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 500;
+      transition: opacity 0.5s;
+    }
+    #loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #loading-image-container {
+      position: relative;
+      width: clamp(150px, 40vw, 300px);
+      height: clamp(150px, 40vw, 300px);
+      margin-bottom: 30px;
+    }
+    #loading-image-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('assets/kevin/kevin.png') center/contain no-repeat;
+      filter: grayscale(100%) brightness(0.3);
+    }
+    #loading-image-reveal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('assets/kevin/kevin.png') center/contain no-repeat;
+      clip-path: inset(100% 0 0 0);
+      transition: clip-path 0.1s ease-out;
+    }
+    #loading-text {
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(24px, 6vw, 48px);
+      color: #ff3333;
+      text-shadow: 0 0 20px #ff3333, 0 0 40px #cc0000, 3px 3px 0 #000;
+      margin-bottom: 15px;
+    }
+    #loading-percent {
+      font-family: 'Kranky', cursive;
+      font-size: clamp(18px, 4vw, 32px);
+      color: #88ffaa;
+      text-shadow: 0 0 10px #88ffaa, 2px 2px 0 #000;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+  
+  <!-- Loading screen -->
+  <div id="loading-screen">
+    <div id="loading-image-container">
+      <div id="loading-image-bg"></div>
+      <div id="loading-image-reveal"></div>
+    </div>
+    <div id="loading-text">LOADING...</div>
+    <div id="loading-percent">0%</div>
+  </div>
+  
+  <!-- Score display -->
+  <div id="score-display">
+    <div id="punches-counter">KILLS: 0</div>
+    <div id="hits-counter">HITS: 0</div>
+  </div>
+  
+  <!-- Start overlay (tap to begin) -->
+  <div id="start-overlay">
+    <div id="start-text">TAP TO START</div>
+  </div>
+  
+  <!-- Intro overlay -->
+  <div id="intro-overlay">
+    <div id="intro-big"></div>
+    <div id="intro-small"></div>
+  </div>
+  
+  <div class="hud">
+    Move: A/D or ←/→. Punch: Space. Touch: drag to steer.
+  </div>
+  
+  <!-- Combo display -->
+  <div id="combo-display"></div>
+  
+  <!-- Mobile controls -->
+  <div id="mobile-controls">
+    <div class="mobile-dpad">
+      <button class="mobile-btn" id="btn-left">◀</button>
+      <button class="mobile-btn" id="btn-right">▶</button>
+    </div>
+    <button class="mobile-btn mobile-btn-action" id="btn-action">PUNCH</button>
+  </div>
+  
+  <!-- End screen -->
+  <div id="end-screen">
+    <div id="end-title">KEVIN WINS!</div>
+    <div id="end-stats"></div>
+  </div>
+
+  <!-- Babylon core + GLTF loader -->
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <!-- Babylon materials library (GridMaterial) + Node Material -->
+  <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.gridMaterial.min.js"></script>
+  <script src="https://cdn.babylonjs.com/nodeGeometries/babylon.nodeGeometry.min.js"></script>
+
+  <script>
+    (async function () {
+      window.addEventListener('error', (e) => {
+        console.error('Window error:', e.error || e.message || e);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        console.error('Unhandled promise rejection:', e.reason);
+      });
+      
+      // Loading screen elements
+      const loadingScreen = document.getElementById('loading-screen');
+      const loadingImageReveal = document.getElementById('loading-image-reveal');
+      const loadingPercent = document.getElementById('loading-percent');
+      
+      // Track loading progress
+      let loadProgress = 0;
+      const totalAssets = 14; // Kevin (2) + running (1) + attacks (4) + punks (7) = 14
+      let loadedAssets = 0;
+      
+      function updateLoadingProgress(increment = 1) {
+        loadedAssets += increment;
+        loadProgress = Math.min(100, Math.round((loadedAssets / totalAssets) * 100));
+        loadingPercent.textContent = `${loadProgress}%`;
+        // Reveal image from bottom to top based on progress
+        const revealPercent = 100 - loadProgress;
+        loadingImageReveal.style.clipPath = `inset(${revealPercent}% 0 0 0)`;
+      }
+      
+      function hideLoadingScreen() {
+        loadingScreen.classList.add('hidden');
+        setTimeout(() => {
+          loadingScreen.style.display = 'none';
+        }, 500);
+      }
+
+      try {
+      // debug_options (project convention)
+      const debug_options = {
+        // Debug visuals
+        SHOW_LIGHT_HELPER: false,  // show a sphere where the spotlight is
+        CAMERA_FREE_LOOK: false,   // enable mouse control to find camera position (set false to lock)
+        // Camera position & settings
+        CAM_X: 0,           // camera X position
+        CAM_Y: 7.5,         // camera Y position (height)
+        CAM_Z: 0,           // camera Z position (distance from Kevin)
+        CAM_TARGET_Y: 1.0,  // where camera looks (Y height)
+        CAM_FOV: 2,      // field of view
+        // Ground size (procedural)
+        GROUND_WIDTH: 300,   // X extent (full width)
+        GROUND_DEPTH: 400,  // Z extent (how far it stretches behind Kevin)
+        // Visual tuning
+        GRID_RATIO: 4.0,          // size of grid squares (smaller = finer)
+        MAJOR_UNIT_FREQ: 5,       // every Nth line is thicker
+        LINE_COLOR: [1.8, 0.1, 0.1],  // bright red (HDR values > 1 to trigger bloom)
+        MAIN_COLOR: [0.02, 0.02, 0.08], // dark navy blue
+        // Kevin tuning
+        KEVIN_SCALE: 3,    // Kevin's size
+        // Movement tuning
+        SCROLL_SPEED: 12,    // how fast the grid scrolls (meters/sec)
+        MOVE_SPEED_X: 14,    // Kevin's X movement speed
+        EDGE_MARGIN: 2,      // keep Kevin away from the edge
+        // CRT effect
+        CRT_ENABLED: true,
+        CRT_SCANLINE_INTENSITY: 0.15,  // how dark the scanlines are (0-1)
+        CRT_SCANLINE_COUNT: 400,       // number of scanlines on screen
+        // Intro sequence
+        INTRO_ENABLED: true,           // play intro sequence on start
+        INTRO_DURATION: 14,            // total intro duration in seconds
+        // Audio
+        MUSIC_ENABLED: true,
+        MUSIC_PATH: 'assets/sound/kevin.mp3?v=2',  // bump version to bust cache
+        // Song timeline (2:36 = 156 seconds total)
+        SONG_SECTIONS: [
+          // 0-14: Intro - no enemies, camera animation (already handled)
+          { start: 0, end: 14, name: "INTRO",
+            spawnInterval: 999, maxEnemies: 0,
+            background: "city", colors: { line: [1.8, 0.1, 0.1], bg: [0.02, 0.02, 0.08] },
+            camera: { z: -0.62, swing: 0 } },
+          
+          // 14-28: First Verse - city background, normal enemies
+          { start: 14, end: 28, name: "VERSE_1",
+            spawnInterval: 1.5, maxEnemies: 8,
+            background: "city", colors: { line: [1.8, 0.1, 0.1], bg: [0.02, 0.02, 0.08] },
+            camera: { z: -0.62, swing: 0 } },
+          
+          // 28-42: First Chorus - vector shapes, green/orange, more enemies
+          { start: 28, end: 42, name: "CHORUS_1",
+            spawnInterval: 0.6, maxEnemies: 18,
+            background: "hills", colors: { line: [0.2, 1.5, 0.3], bg: [0.08, 0.04, 0.02] },
+            camera: { z: -0.62, swing: 0 } },
+          
+          // 42-56: Second Verse - NEW background needed, yellow/silver, normal enemies
+          { start: 42, end: 56, name: "VERSE_2",
+            spawnInterval: 1.5, maxEnemies: 8,
+            background: "crystals", colors: { line: [1.5, 1.4, 0.2], bg: [0.06, 0.06, 0.08] },
+            camera: { z: -0.62, swing: 0 } },
+          
+          // 56-71: Second Chorus - NEW background, beige/grey, chorus enemies
+          { start: 56, end: 71, name: "CHORUS_2",
+            spawnInterval: 0.6, maxEnemies: 18,
+            background: "pyramids", colors: { line: [1.2, 1.1, 0.9], bg: [0.04, 0.04, 0.05] },
+            camera: { z: -0.62, swing: 0 } },
+          
+          // 71-99: Bridge - close camera (not as close as intro), swinging, spirals, pink/dark green
+          { start: 71, end: 99, name: "BRIDGE",
+            spawnInterval: 1.5, maxEnemies: 8,
+            background: "spirals", colors: { line: [1.8, 0.3, 1.0], bg: [0.02, 0.06, 0.03] },
+            camera: { z: -6, swing: 4 } }, // negative Z = closer to Kevin
+          
+          // 99-113: Breakdown - pulled WAY back, few enemies, gold/light blue
+          { start: 99, end: 113, name: "BREAKDOWN",
+            spawnInterval: 3, maxEnemies: 3,
+            background: "minimal", colors: { line: [1.5, 1.2, 0.4], bg: [0.03, 0.05, 0.08] },
+            camera: { z: 8, swing: 0 } }, // positive Z = further from Kevin
+          
+          // 113-128: Final Verse - back to city, normal colors
+          { start: 113, end: 128, name: "VERSE_FINAL",
+            spawnInterval: 1.5, maxEnemies: 8,
+            background: "city", colors: { line: [1.8, 0.1, 0.1], bg: [0.02, 0.02, 0.08] },
+            camera: { z: -0.62, swing: 0 } },
+          
+          // 128-142: Chorus Breakdown - ramp up, cycling backgrounds/colors
+          { start: 128, end: 142, name: "CHORUS_BREAKDOWN",
+            spawnInterval: 0.4, maxEnemies: 25, spawnRamp: true,
+            background: "cycle", colors: "cycle",
+            camera: { z: -0.62, swing: 0 } },
+          
+          // 142-156: Final Chorus - ALL OUT, max enemies, wild camera, glitch
+          { start: 142, end: 156, name: "FINAL_CHORUS",
+            spawnInterval: 0.3, maxEnemies: 30,
+            background: "cycle", colors: "cycle",
+            camera: { z: -0.62, swing: 2, wild: true },
+            glitch: true },
+        ],
+        // Beat sync
+        BPM: 135,
+        BEAT_PULSE_INTENSITY: 0.3,  // how much things pulse (0-1)
+      };
+
+      const canvas = document.getElementById('renderCanvas');
+      const engine = new BABYLON.Engine(canvas, true);
+      engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
+      const scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0.02, 0.02, 0.08, 1);
+
+      // Fog for visible synthwave haze (claustrophobic atmosphere)
+      scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+      scene.fogDensity = 0.03
+      ;  // reduced so things visible longer behind us
+      scene.fogColor = new BABYLON.Color3(0.35, 0.1, 0.45);  // brighter purple haze, more visible
+
+      // GlowLayer for neon glow (will work with our emissive NodeMaterial)
+      const glowLayer = new BABYLON.GlowLayer('glow', scene, {
+        mainTextureSamples: 4,
+        blurKernelSize: 32,
+      });
+      glowLayer.intensity = 1.0; // much lower to not wash out the grid
+
+      // ─────────────────────────────────────────────────────────────────────
+      // 80s Synthwave Skybox
+      // ─────────────────────────────────────────────────────────────────────
+      const skybox = BABYLON.MeshBuilder.CreateBox('skybox', { size: 2000 }, scene);
+      const skyMat = new BABYLON.ShaderMaterial('skyMat', scene, {
+        vertexSource: `
+          precision highp float;
+          attribute vec3 position;
+          uniform mat4 worldViewProjection;
+          varying vec3 vPosition;
+          void main() {
+            vPosition = position;
+            gl_Position = worldViewProjection * vec4(position, 1.0);
+          }
+        `,
+        fragmentSource: `
+          precision highp float;
+          varying vec3 vPosition;
+          
+          // Simple hash for stars
+          float hash(vec2 p) {
+            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+          }
+          
+          void main() {
+            // Normalize position for gradient
+            vec3 dir = normalize(vPosition);
+            float y = dir.y;
+            
+            // Gradient colors (bottom to top) - Navy/Red theme
+            vec3 horizonColor = vec3(0.8, 0.1, 0.1);   // red at horizon
+            vec3 midColor = vec3(0.15, 0.1, 0.3);      // deep purple-blue
+            vec3 topColor = vec3(0.02, 0.02, 0.1);     // dark navy
+            
+            // Create gradient based on Y
+            vec3 color;
+            if (y < 0.0) {
+              // Below horizon - dark navy
+              color = vec3(0.01, 0.01, 0.04);
+            } else if (y < 0.15) {
+              // Horizon glow
+              float t = y / 0.15;
+              color = mix(horizonColor, midColor, t);
+            } else if (y < 0.5) {
+              // Mid sky
+              float t = (y - 0.15) / 0.35;
+              color = mix(midColor, topColor, t);
+            } else {
+              // Upper sky
+              color = topColor;
+            }
+            
+            // Add stars (only in upper half)
+            if (y > 0.2) {
+              vec2 starCoord = dir.xz / (dir.y + 0.001) * 50.0;
+              float star = hash(floor(starCoord));
+              if (star > 0.98) {
+                float brightness = (star - 0.98) * 50.0;
+                float twinkle = 0.5 + 0.5 * sin(star * 1000.0);
+                color += vec3(brightness * twinkle);
+              }
+            }
+            
+            // Add a subtle horizontal glow line at horizon - RED
+            float horizonLine = exp(-abs(y - 0.02) * 80.0);
+            color += vec3(1.0, 0.15, 0.1) * horizonLine * 0.6;
+            
+            // Setting sun behind Kevin (negative Z direction) - SMALLER for scan line effect
+            vec3 sunDir = normalize(vec3(0.0, 0.12, -1.0)); // slightly above horizon, behind
+            float sunDist = length(dir.xz - sunDir.xz) * 2.0 + abs(dir.y - sunDir.y) * 1.5;
+            
+            // Sun core (bright red/orange) - smaller
+            float sunCore = smoothstep(0.15, 0.0, sunDist);
+            color += vec3(1.0, 0.2, 0.1) * sunCore * 2.5;
+            
+            // Sun glow (smaller, tighter) - red
+            float sunGlow = exp(-sunDist * 8.0);
+            color += vec3(1.0, 0.1, 0.05) * sunGlow * 1.0;
+            
+            // Sun halo (subtle) - deep red
+            float sunHalo = exp(-sunDist * 3.0);
+            color += vec3(0.8, 0.1, 0.15) * sunHalo * 0.4;
+            
+            // Horizontal lines through the sun (classic 80s effect) - tighter
+            if (sunDist < 0.18 && y > 0.0 && y < 0.18) {
+              float lineY = fract(y * 60.0); // more lines
+              float line = step(0.4, lineY);
+              color *= 0.15 + line * 0.85;
+            }
+            
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `
+      }, {
+        attributes: ['position'],
+        uniforms: ['worldViewProjection'],
+      });
+      skyMat.backFaceCulling = false;
+      skybox.material = skyMat;
+      skybox.infiniteDistance = true;
+
+      // Camera (fixed, slightly above looking down)
+      const kevinZ = -10;
+      const cameraBasePos = new BABYLON.Vector3(
+        debug_options.CAM_X,
+        debug_options.CAM_Y,
+        debug_options.CAM_Z
+      );
+      const camera = new BABYLON.UniversalCamera('cam', cameraBasePos.clone(), scene);
+      camera.fov = debug_options.CAM_FOV;
+      camera.minZ = 0.1;
+      camera.maxZ = 5000;
+      camera.setTarget(new BABYLON.Vector3(0, debug_options.CAM_TARGET_Y, kevinZ));
+      
+      // Camera controls: enable for positioning, disable when locked
+      if (debug_options.CAMERA_FREE_LOOK) {
+        camera.attachControl(canvas, true);
+        // Add zoom with scroll wheel / trackpad two-finger scroll
+        canvas.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const zoomSpeed = 0.5;
+          const direction = camera.getForwardRay().direction;
+          camera.position.addInPlace(direction.scale(-e.deltaY * zoomSpeed * 0.01));
+        }, { passive: false });
+        // Pinch-to-zoom gesture (Safari/macOS)
+        let lastGestureScale = 1;
+        canvas.addEventListener('gesturestart', (e) => { e.preventDefault(); lastGestureScale = 1; });
+        canvas.addEventListener('gesturechange', (e) => {
+          e.preventDefault();
+          const delta = e.scale - lastGestureScale;
+          lastGestureScale = e.scale;
+          const direction = camera.getForwardRay().direction;
+          camera.position.addInPlace(direction.scale(delta * 5));
+        });
+        canvas.addEventListener('gestureend', (e) => { e.preventDefault(); });
+        // Q/E adjust camera height, R/F adjust camera forward/back
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'q' || e.key === 'Q') { camera.position.y += 0.5; console.log('Camera Y:', camera.position.y.toFixed(2)); }
+          else if (e.key === 'e' || e.key === 'E') { camera.position.y -= 0.5; console.log('Camera Y:', camera.position.y.toFixed(2)); }
+          else if (e.key === 'r' || e.key === 'R') { camera.position.z -= 0.5; console.log('Camera Z:', camera.position.z.toFixed(2)); }
+          else if (e.key === 'f' || e.key === 'F') { camera.position.z += 0.5; console.log('Camera Z:', camera.position.z.toFixed(2)); }
+        });
+        // Log camera position periodically so you can copy the values
+        setInterval(() => {
+          console.log('CAMERA POS:', 
+            'X:', camera.position.x.toFixed(2),
+            'Y:', camera.position.y.toFixed(2),
+            'Z:', camera.position.z.toFixed(2),
+            'FOV:', camera.fov.toFixed(2)
+          );
+        }, 2000);
+      } else {
+        // Completely disable all camera controls
+        camera.inputs.clear();
+        camera.detachControl();
+      }
+
+      // Camera shake system
+      let cameraShakeIntensity = 0;
+      let cameraShakeDecay = 6; // how fast shake fades (slower = longer shake)
+      function triggerCameraShake(intensity) {
+        cameraShakeIntensity = Math.max(cameraShakeIntensity, intensity);
+      }
+
+      // Screen flash system
+      const flashPlane = BABYLON.MeshBuilder.CreatePlane('flash', { size: 100 }, scene);
+      flashPlane.parent = camera;
+      flashPlane.position.z = 1; // just in front of camera
+      const flashMat = new BABYLON.StandardMaterial('flashMat', scene);
+      flashMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+      flashMat.disableLighting = true;
+      flashMat.alpha = 0;
+      flashPlane.material = flashMat;
+      let flashIntensity = 0;
+      function triggerFlash(color, intensity) {
+        flashMat.emissiveColor = color || new BABYLON.Color3(1, 1, 1);
+        flashIntensity = intensity || 1.0;
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // CRT Scanline Post-Process Effect
+      // ─────────────────────────────────────────────────────────────────────
+      if (debug_options.CRT_ENABLED) {
+        BABYLON.Effect.ShadersStore['crtFragmentShader'] = `
+          precision highp float;
+          varying vec2 vUV;
+          uniform sampler2D textureSampler;
+          uniform float scanlineIntensity;
+          uniform float scanlineCount;
+          uniform float time;
+          
+          void main(void) {
+            vec2 uv = vUV;
+            
+            // Sample the scene
+            vec4 color = texture2D(textureSampler, uv);
+            
+            // Scanlines - horizontal dark bands
+            float scanline = sin(uv.y * scanlineCount * 3.14159) * 0.5 + 0.5;
+            scanline = pow(scanline, 0.8); // sharper lines
+            float scanlineFactor = 1.0 - (scanlineIntensity * (1.0 - scanline));
+            
+            // Apply scanlines
+            color.rgb *= scanlineFactor;
+            
+            // Subtle vignette (darker at edges)
+            vec2 vignetteUV = uv * (1.0 - uv);
+            float vignette = vignetteUV.x * vignetteUV.y * 15.0;
+            vignette = pow(vignette, 0.25);
+            color.rgb *= vignette;
+            
+            // Very subtle RGB shift for CRT feel
+            float shift = 0.001;
+            color.r = texture2D(textureSampler, uv + vec2(shift, 0.0)).r * scanlineFactor * vignette;
+            color.b = texture2D(textureSampler, uv - vec2(shift, 0.0)).b * scanlineFactor * vignette;
+            
+            gl_FragColor = color;
+          }
+        `;
+        
+        const crtPostProcess = new BABYLON.PostProcess(
+          'crt', 'crt', 
+          ['scanlineIntensity', 'scanlineCount', 'time'],
+          null, 1.0, camera
+        );
+        
+        let crtTime = 0;
+        crtPostProcess.onApply = (effect) => {
+          crtTime += 0.016;
+          effect.setFloat('scanlineIntensity', debug_options.CRT_SCANLINE_INTENSITY);
+          effect.setFloat('scanlineCount', debug_options.CRT_SCANLINE_COUNT);
+          effect.setFloat('time', crtTime);
+        };
+      }
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // Glitch Post-Process Effect (for Final Chorus)
+      // ─────────────────────────────────────────────────────────────────────
+      BABYLON.Effect.ShadersStore['glitchFragmentShader'] = `
+        precision highp float;
+        varying vec2 vUV;
+        uniform sampler2D textureSampler;
+        uniform float time;
+        uniform float intensity;
+        
+        float rand(vec2 co) {
+          return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453);
+        }
+        
+        void main(void) {
+          vec2 uv = vUV;
+          
+          if (intensity > 0.0) {
+            // Random horizontal displacement
+            float glitchLine = step(0.99, rand(vec2(floor(uv.y * 50.0), time)));
+            float displacement = (rand(vec2(time, floor(uv.y * 30.0))) - 0.5) * 0.1 * intensity * glitchLine;
+            uv.x += displacement;
+            
+            // Color channel splitting
+            float split = intensity * 0.02 * (rand(vec2(time * 0.1, 0.0)) - 0.5);
+            vec4 color;
+            color.r = texture2D(textureSampler, uv + vec2(split, 0.0)).r;
+            color.g = texture2D(textureSampler, uv).g;
+            color.b = texture2D(textureSampler, uv - vec2(split, 0.0)).b;
+            color.a = 1.0;
+            
+            // Random noise blocks
+            float blockNoise = step(0.97, rand(vec2(floor(uv.x * 20.0), floor(uv.y * 20.0) + time)));
+            color.rgb = mix(color.rgb, vec3(rand(uv + time)), blockNoise * intensity * 0.5);
+            
+            gl_FragColor = color;
+          } else {
+            gl_FragColor = texture2D(textureSampler, uv);
+          }
+        }
+      `;
+      
+      const glitchPostProcess = new BABYLON.PostProcess(
+        'glitch', 'glitch',
+        ['time', 'intensity'],
+        null, 1.0, camera
+      );
+      
+      let glitchTime = 0;
+      let glitchIntensity = 0;
+      glitchPostProcess.onApply = (effect) => {
+        glitchTime += 0.016;
+        effect.setFloat('time', glitchTime);
+        effect.setFloat('intensity', glitchIntensity);
+      };
+
+      // Lighting (brighter to make Kevin pop)
+      const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
+      hemi.intensity = 2;
+      hemi.groundColor = new BABYLON.Color3(0.1, 0.05, 0.15);
+      const dir = new BABYLON.DirectionalLight('dir', new BABYLON.Vector3(0.2, -1, 0.5), scene);
+      dir.intensity = 3.0; // cranked up to light Kevin better
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Procedural Tron Ground with GLOWING NodeMaterial
+      // ─────────────────────────────────────────────────────────────────────
+      const groundWidth = debug_options.GROUND_WIDTH;
+      const groundDepth = debug_options.GROUND_DEPTH;
+      const ground = BABYLON.MeshBuilder.CreateGround('tronGround', {
+        width: groundWidth,
+        height: groundDepth,
+        subdivisions: 1,
+      }, scene);
+      // Position so Kevin stands near the front edge visually
+      ground.position.z = kevinZ - groundDepth / 2 + 20;
+
+      // Create a custom ShaderMaterial that draws grid lines with emissive output
+      const gridShaderCode = {
+        vertex: `
+          precision highp float;
+          attribute vec3 position;
+          attribute vec2 uv;
+          uniform mat4 worldViewProjection;
+          uniform mat4 world;
+          varying vec2 vUV;
+          varying vec3 vWorldPos;
+          void main() {
+            vUV = uv;
+            vWorldPos = (world * vec4(position, 1.0)).xyz;
+            gl_Position = worldViewProjection * vec4(position, 1.0);
+          }
+        `,
+        fragment: `
+          precision highp float;
+          varying vec2 vUV;
+          varying vec3 vWorldPos;
+          uniform float gridScale;
+          uniform float lineWidth;
+          uniform float scrollOffset;
+          uniform vec3 lineColor;
+          uniform vec3 bgColor;
+          uniform float fogDensity;
+          uniform vec3 fogColor;
+
+          void main() {
+            // Use world position for consistent grid regardless of UV mapping
+            vec2 coord = vec2(vWorldPos.x, vWorldPos.z + scrollOffset) / gridScale;
+            
+            // Create grid lines using fract and smoothstep
+            vec2 grid = abs(fract(coord - 0.5) - 0.5);
+            float line = min(grid.x, grid.y);
+            
+            // Sharp lines with slight anti-aliasing
+            float edgeWidth = lineWidth;
+            float lineIntensity = 1.0 - smoothstep(0.0, edgeWidth, line);
+            
+            // Major grid lines (every 5 units)
+            vec2 majorCoord = coord / 5.0;
+            vec2 majorGrid = abs(fract(majorCoord - 0.5) - 0.5);
+            float majorLine = min(majorGrid.x, majorGrid.y);
+            float majorIntensity = 1.0 - smoothstep(0.0, edgeWidth * 1.5, majorLine);
+            
+            // Combine minor and major lines
+            float totalIntensity = max(lineIntensity * 0.6, majorIntensity);
+            
+            // Mix line color with background
+            vec3 color = mix(bgColor, lineColor, totalIntensity);
+            
+            // Apply fog based on distance from camera (simple z-based fog)
+            float fogFactor = 1.0 - exp(-fogDensity * abs(vWorldPos.z + 200.0));
+            fogFactor = clamp(fogFactor, 0.0, 1.0);
+            color = mix(color, fogColor, fogFactor);
+            
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `
+      };
+
+      const gridMat = new BABYLON.ShaderMaterial('tronGridMat', scene, {
+        vertexSource: gridShaderCode.vertex,
+        fragmentSource: gridShaderCode.fragment,
+      }, {
+        attributes: ['position', 'uv'],
+        uniforms: ['worldViewProjection', 'world', 'gridScale', 'lineWidth', 'scrollOffset', 'lineColor', 'bgColor', 'fogDensity', 'fogColor'],
+      });
+      gridMat.backFaceCulling = false;
+      gridMat.setFloat('gridScale', debug_options.GRID_RATIO);
+      gridMat.setFloat('lineWidth', 0.03);
+      gridMat.setFloat('scrollOffset', 0);
+      gridMat.setColor3('lineColor', new BABYLON.Color3(...debug_options.LINE_COLOR));
+      gridMat.setColor3('bgColor', new BABYLON.Color3(...debug_options.MAIN_COLOR));
+      gridMat.setFloat('fogDensity', 0.002);
+      gridMat.setColor3('fogColor', scene.fogColor);
+      ground.material = gridMat;
+
+      // Don't include ground in glow for now - the custom shader handles the look
+      // (GlowLayer can't easily glow just the grid lines without more work)
+
+      // We'll animate scrollOffset to scroll the grid
+      let gridOffsetZ = 0;
+
+      // Movement clamp - lock Kevin between the major grid lines (one thick line on each side)
+      const majorLineSpacing = debug_options.GRID_RATIO * debug_options.MAJOR_UNIT_FREQ;
+      const moveClampX = majorLineSpacing / 2; // stay within ±half of one major cell
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Tron-style decorative shapes along the sides
+      // ─────────────────────────────────────────────────────────────────────
+      const tronShapes = [];
+      const shapeXOffset = moveClampX + 8; // position shapes outside the play area
+      
+      // Glowing material for shapes - Navy/Red theme
+      const tronShapeMat = new BABYLON.StandardMaterial('tronShapeMat', scene);
+      tronShapeMat.emissiveColor = new BABYLON.Color3(0.3, 0.4, 1); // blue glow
+      tronShapeMat.diffuseColor = new BABYLON.Color3(0.1, 0.15, 0.3);
+      tronShapeMat.specularColor = new BABYLON.Color3(0, 0, 0);
+      tronShapeMat.alpha = 0.9;
+
+      const tronShapeMat2 = new BABYLON.StandardMaterial('tronShapeMat2', scene);
+      tronShapeMat2.emissiveColor = new BABYLON.Color3(1, 0.15, 0.1); // red glow (matches grid)
+      tronShapeMat2.diffuseColor = new BABYLON.Color3(0.3, 0.05, 0.05);
+      tronShapeMat2.specularColor = new BABYLON.Color3(0, 0, 0);
+      tronShapeMat2.alpha = 0.9;
+
+      // Create shapes along both sides (BIGGER!)
+      function createTronShape(type, x, z, side) {
+        let shape;
+        const mat = Math.random() > 0.5 ? tronShapeMat : tronShapeMat2;
+        
+        switch(type) {
+          case 'box':
+            shape = BABYLON.MeshBuilder.CreateBox('tronBox', { width: 6, height: 15 + Math.random() * 20, depth: 6 }, scene);
+            break;
+          case 'cylinder':
+            shape = BABYLON.MeshBuilder.CreateCylinder('tronCyl', { diameter: 5, height: 18 + Math.random() * 25 }, scene);
+            break;
+          case 'torus':
+            shape = BABYLON.MeshBuilder.CreateTorus('tronTorus', { diameter: 12, thickness: 1.5 }, scene);
+            shape.rotation.x = Math.PI / 2;
+            break;
+          case 'arch':
+            // Create an arch using a half-torus - parallel to running direction
+            shape = BABYLON.MeshBuilder.CreateTorus('tronArch', { diameter: 25, thickness: 2, tessellation: 32, arc: 0.5 }, scene);
+            shape.rotation.x = Math.PI / 2; // stand upright
+            shape.rotation.y = 0; // face along Z axis (parallel to running)
+            break;
+          case 'pyramid':
+            shape = BABYLON.MeshBuilder.CreateCylinder('tronPyramid', { diameterTop: 0, diameterBottom: 10, height: 20 + Math.random() * 15, tessellation: 4 }, scene);
+            break;
+        }
+        
+        shape.material = mat;
+        shape.position = new BABYLON.Vector3(x * side, shape.getBoundingInfo().boundingBox.extendSize.y, z);
+        
+        tronShapes.push({ mesh: shape, baseZ: z });
+        return shape;
+      }
+
+      // Spawn shapes along both sides
+      const shapeTypes = ['box', 'cylinder', 'torus', 'arch', 'pyramid'];
+      const shapeSpacing = 25;
+      const numShapes = 20;
+      
+      for (let i = 0; i < numShapes; i++) {
+        const z = kevinZ - 50 - i * shapeSpacing;
+        const type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+        
+        // Left side
+        createTronShape(type, shapeXOffset + Math.random() * 5, z, -1);
+        // Right side
+        createTronShape(type, shapeXOffset + Math.random() * 5, z, 1);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Tron Cityscape Backdrop (silhouette buildings in the distance)
+      // ─────────────────────────────────────────────────────────────────────
+      const buildings = [];
+      const buildingXOffset = moveClampX + 40; // further out than shapes
+      const buildingSpacing = 12;
+      const numBuildings = 40;
+
+      // Dark material for silhouette buildings with subtle edge glow - Navy theme
+      const buildingMat = new BABYLON.StandardMaterial('buildingMat', scene);
+      buildingMat.diffuseColor = new BABYLON.Color3(0.02, 0.02, 0.06);
+      buildingMat.specularColor = new BABYLON.Color3(0, 0, 0);
+      buildingMat.emissiveColor = new BABYLON.Color3(0.03, 0.03, 0.1);
+
+      // Glowing window material - Red theme
+      const windowMat = new BABYLON.StandardMaterial('windowMat', scene);
+      windowMat.emissiveColor = new BABYLON.Color3(1, 0.2, 0.15);
+      windowMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
+
+      function createBuilding(x, z, side) {
+        const width = 8 + Math.random() * 15;
+        const height = 30 + Math.random() * 80;
+        const depth = 8 + Math.random() * 15;
+        
+        const building = BABYLON.MeshBuilder.CreateBox('building', { width, height, depth }, scene);
+        building.material = buildingMat;
+        building.position = new BABYLON.Vector3(x * side, height / 2, z);
+        
+        // Add lots of glowing "windows" on ALL sides
+        const windowsPerSide = Math.floor(Math.random() * 12) + 8;
+        const sides = [
+          { axis: 'z', offset: depth/2 + 0.1, rotY: 0 },           // front
+          { axis: 'z', offset: -depth/2 - 0.1, rotY: Math.PI },    // back
+          { axis: 'x', offset: width/2 + 0.1, rotY: Math.PI/2 },   // right
+          { axis: 'x', offset: -width/2 - 0.1, rotY: -Math.PI/2 }, // left
+        ];
+        
+        for (const s of sides) {
+          for (let w = 0; w < windowsPerSide; w++) {
+            const winWidth = 0.8 + Math.random() * 1.5;
+            const winHeight = 1 + Math.random() * 2;
+            const win = BABYLON.MeshBuilder.CreateBox('window', { width: winWidth, height: winHeight, depth: 0.2 }, scene);
+            
+            // Vary window colors - Red and Blue theme
+            const winMat = new BABYLON.StandardMaterial('winMat', scene);
+            const brightness = 0.5 + Math.random() * 0.5;
+            if (Math.random() > 0.5) {
+              winMat.emissiveColor = new BABYLON.Color3(brightness, brightness * 0.1, brightness * 0.1); // red
+            } else {
+              winMat.emissiveColor = new BABYLON.Color3(brightness * 0.2, brightness * 0.4, brightness); // blue
+            }
+            winMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
+            win.material = winMat;
+            win.parent = building;
+            win.rotation.y = s.rotY;
+            
+            if (s.axis === 'z') {
+              win.position = new BABYLON.Vector3(
+                (Math.random() - 0.5) * (width - 2),
+                (Math.random() - 0.5) * (height - 5),
+                s.offset
+              );
+            } else {
+              win.position = new BABYLON.Vector3(
+                s.offset,
+                (Math.random() - 0.5) * (height - 5),
+                (Math.random() - 0.5) * (depth - 2)
+              );
+            }
+          }
+        }
+        
+        // Occasionally add antenna/spire on top
+        if (Math.random() > 0.6) {
+          const spire = BABYLON.MeshBuilder.CreateCylinder('spire', { 
+            diameterTop: 0.3, 
+            diameterBottom: 1.5, 
+            height: 15 + Math.random() * 20 
+          }, scene);
+          spire.material = buildingMat;
+          spire.parent = building;
+          spire.position.y = height / 2 + 7;
+          
+          // Blinking light on top
+          const light = BABYLON.MeshBuilder.CreateSphere('light', { diameter: 1 }, scene);
+          const lightMat = new BABYLON.StandardMaterial('lightMat', scene);
+          lightMat.emissiveColor = new BABYLON.Color3(1, 0, 0.3);
+          light.material = lightMat;
+          light.parent = spire;
+          light.position.y = 8 + Math.random() * 10;
+        }
+        
+        buildings.push({ mesh: building, baseZ: z });
+        return building;
+      }
+
+      // Create building rows on both sides
+      for (let i = 0; i < numBuildings; i++) {
+        const z = kevinZ - 30 - i * buildingSpacing;
+        
+        // Left side - staggered depths
+        createBuilding(buildingXOffset + Math.random() * 20, z, -1);
+        // Right side
+        createBuilding(buildingXOffset + Math.random() * 20, z, 1);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Wavy Hills (appear at 28 seconds, replacing buildings)
+      // ─────────────────────────────────────────────────────────────────────
+      const wavyHills = [];
+      const hillXOffset = moveClampX + 25;
+      const numHills = 12;
+      const hillSpacing = 25;
+      
+      // Material for wavy hills - glowing edges
+      const hillMat = new BABYLON.StandardMaterial('hillMat', scene);
+      hillMat.emissiveColor = new BABYLON.Color3(0.4, 0.1, 0.1); // dark red glow
+      hillMat.diffuseColor = new BABYLON.Color3(0.1, 0.05, 0.15);
+      hillMat.specularColor = new BABYLON.Color3(0, 0, 0);
+      hillMat.alpha = 0.85;
+      hillMat.wireframe = true; // wireframe for abstract look
+      
+      const hillMat2 = new BABYLON.StandardMaterial('hillMat2', scene);
+      hillMat2.emissiveColor = new BABYLON.Color3(0.1, 0.2, 0.6); // blue glow
+      hillMat2.diffuseColor = new BABYLON.Color3(0.05, 0.1, 0.2);
+      hillMat2.specularColor = new BABYLON.Color3(0, 0, 0);
+      hillMat2.alpha = 0.85;
+      hillMat2.wireframe = true;
+      
+      function createWavyHill(x, z, side) {
+        // Create a ribbon/wave shape using path
+        const pathLength = 50;
+        const paths = [];
+        const numPaths = 8;
+        
+        for (let p = 0; p < numPaths; p++) {
+          const path = [];
+          const xOffset = p * 4;
+          for (let i = 0; i <= pathLength; i++) {
+            const t = i / pathLength;
+            const waveY = Math.sin(t * Math.PI * 3 + p * 0.5) * (8 + Math.random() * 10);
+            const waveX = Math.sin(t * Math.PI * 2) * 3;
+            path.push(new BABYLON.Vector3(xOffset + waveX, Math.max(0, waveY), t * 80 - 40));
+          }
+          paths.push(path);
+        }
+        
+        const hill = BABYLON.MeshBuilder.CreateRibbon('wavyHill', {
+          pathArray: paths,
+          sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+        }, scene);
+        
+        hill.material = Math.random() > 0.5 ? hillMat : hillMat2;
+        hill.position = new BABYLON.Vector3(x * side, 0, z);
+        hill.visibility = 0; // Start invisible
+        
+        wavyHills.push({ mesh: hill, baseZ: z });
+        return hill;
+      }
+      
+      // Create hills on both sides
+      for (let i = 0; i < numHills; i++) {
+        const z = kevinZ - 30 - i * hillSpacing;
+        createWavyHill(hillXOffset, z, -1);
+        createWavyHill(hillXOffset, z, 1);
+      }
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // Crystal Shapes Background (Verse 2 - yellow/silver)
+      // ─────────────────────────────────────────────────────────────────────
+      const crystalShapes = [];
+      const numCrystals = 16;
+      const crystalSpacing = 20;
+      
+      const crystalMat = new BABYLON.StandardMaterial('crystalMat', scene);
+      crystalMat.emissiveColor = new BABYLON.Color3(0.8, 0.8, 0.2);
+      crystalMat.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.05);
+      crystalMat.alpha = 0.8;
+      
+      function createCrystal(x, z, side) {
+        // Create elongated octahedron-like crystal
+        const height = 15 + Math.random() * 25;
+        const crystal = BABYLON.MeshBuilder.CreatePolyhedron('crystal', {
+          type: 1, // octahedron
+          size: 3 + Math.random() * 4,
+        }, scene);
+        crystal.scaling.y = height / 5;
+        crystal.material = crystalMat;
+        crystal.position = new BABYLON.Vector3(x * side + (Math.random() - 0.5) * 10, height / 2, z);
+        crystal.rotation.y = Math.random() * Math.PI;
+        crystal.rotation.z = (Math.random() - 0.5) * 0.3;
+        crystal.visibility = 0;
+        crystalShapes.push({ mesh: crystal, baseZ: z });
+        return crystal;
+      }
+      
+      for (let i = 0; i < numCrystals; i++) {
+        const z = kevinZ - 30 - i * crystalSpacing;
+        createCrystal(hillXOffset, z, -1);
+        createCrystal(hillXOffset, z, 1);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Pyramid Shapes Background (Chorus 2 - beige/grey)
+      // ─────────────────────────────────────────────────────────────────────
+      const pyramidShapes = [];
+      const numPyramids = 14;
+      const pyramidSpacing = 22;
+      
+      const pyramidMat = new BABYLON.StandardMaterial('pyramidMat', scene);
+      pyramidMat.emissiveColor = new BABYLON.Color3(0.6, 0.55, 0.45);
+      pyramidMat.diffuseColor = new BABYLON.Color3(0.15, 0.14, 0.12);
+      pyramidMat.wireframe = true;
+      pyramidMat.alpha = 0.9;
+      
+      function createPyramid(x, z, side) {
+        const size = 8 + Math.random() * 12;
+        const pyramid = BABYLON.MeshBuilder.CreatePolyhedron('pyramid', {
+          type: 2, // icosahedron for angular look
+          size: size,
+        }, scene);
+        pyramid.material = pyramidMat;
+        pyramid.position = new BABYLON.Vector3(x * side + (Math.random() - 0.5) * 8, size * 0.6, z);
+        pyramid.rotation.y = Math.random() * Math.PI * 2;
+        pyramid.visibility = 0;
+        pyramidShapes.push({ mesh: pyramid, baseZ: z });
+        return pyramid;
+      }
+      
+      for (let i = 0; i < numPyramids; i++) {
+        const z = kevinZ - 30 - i * pyramidSpacing;
+        createPyramid(hillXOffset - 5, z, -1);
+        createPyramid(hillXOffset - 5, z, 1);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Spiral Shapes Background (Bridge - pink/dark green)
+      // ─────────────────────────────────────────────────────────────────────
+      const spiralShapes = [];
+      const numSpirals = 12;
+      const spiralSpacing = 25;
+      
+      const spiralMat = new BABYLON.StandardMaterial('spiralMat', scene);
+      spiralMat.emissiveColor = new BABYLON.Color3(1.0, 0.3, 0.8);
+      spiralMat.diffuseColor = new BABYLON.Color3(0.2, 0.05, 0.15);
+      spiralMat.alpha = 0.85;
+      
+      function createSpiral(x, z, side) {
+        // Create a torus knot for spiral effect
+        const spiral = BABYLON.MeshBuilder.CreateTorusKnot('spiral', {
+          radius: 4 + Math.random() * 3,
+          tube: 0.8 + Math.random() * 0.5,
+          radialSegments: 64,
+          tubularSegments: 16,
+          p: 2 + Math.floor(Math.random() * 3),
+          q: 3 + Math.floor(Math.random() * 4),
+        }, scene);
+        spiral.material = spiralMat;
+        spiral.position = new BABYLON.Vector3(x * side, 8 + Math.random() * 15, z);
+        spiral.rotation = new BABYLON.Vector3(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        spiral.visibility = 0;
+        spiralShapes.push({ mesh: spiral, baseZ: z, rotSpeed: (Math.random() - 0.5) * 0.5 });
+        return spiral;
+      }
+      
+      for (let i = 0; i < numSpirals; i++) {
+        const z = kevinZ - 30 - i * spiralSpacing;
+        createSpiral(hillXOffset, z, -1);
+        createSpiral(hillXOffset, z, 1);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Kevin (Mixamo-rigged)
+      // ─────────────────────────────────────────────────────────────────────
+      function buildAnimationGroupForSkeleton(srcGroup, destSkeleton, groupName, filterTargetName, frameRange) {
+        const group = new BABYLON.AnimationGroup(groupName, scene);
+        let matched = 0;
+        for (const ta of srcGroup.targetedAnimations) {
+          const targetName = ta.target && ta.target.name;
+          if (!targetName) continue;
+          if (filterTargetName && !filterTargetName(targetName)) continue;
+          const node = scene.getNodeByName(targetName);
+          const bone = destSkeleton.bones.find(b => b.name === targetName);
+          const destTarget = node || bone;
+          if (!destTarget) continue;
+          matched++;
+          group.addTargetedAnimation(ta.animation.clone(), destTarget);
+        }
+        if (frameRange && Number.isFinite(frameRange.from) && Number.isFinite(frameRange.to)) {
+          group.normalize(frameRange.from, frameRange.to);
+        }
+        console.log(`Built ${groupName}: matched ${matched} tracks`);
+        return group;
+      }
+
+      const kevinImport = await BABYLON.SceneLoader.ImportMeshAsync(null, '', 'assets/kevin/glb/kevin_mixamo_withskin_optimized.glb', scene);
+      updateLoadingProgress(2); // Kevin model is bigger, count as 2
+      const kevinRoot = kevinImport.meshes[0];
+      const kevinSkeleton = kevinImport.skeletons[0];
+      if (kevinRoot.rotationQuaternion) {
+        kevinRoot.rotation = kevinRoot.rotationQuaternion.toEulerAngles();
+        kevinRoot.rotationQuaternion = null;
+      }
+      // Face Kevin toward the camera (rotate 180° around Y)
+      kevinRoot.rotation.y = 0;
+      // Scale Kevin (from config)
+      const kevinScale = debug_options.KEVIN_SCALE;
+      kevinRoot.scaling = new BABYLON.Vector3(kevinScale, kevinScale, kevinScale);
+      const kBounds = kevinRoot.getHierarchyBoundingVectors();
+      const yLift = -kBounds.min.y + 0.02; // stand just on the grid
+      kevinRoot.position = new BABYLON.Vector3(0, yLift, kevinZ);
+
+      // Movement state
+      let targetX = 0;
+      const strafeSpeed = 12;
+      const input = { left: false, right: false };
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); input.left = true; }
+        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); input.right = true; }
+      }, { passive: false });
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); input.left = false; }
+        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); input.right = false; }
+      }, { passive: false });
+
+      // Touch drag (for canvas swiping - keep as fallback)
+      let dragActive = false;
+      let lastDragX = 0;
+      canvas.addEventListener('pointerdown', (e) => { dragActive = true; lastDragX = e.clientX; canvas.setPointerCapture?.(e.pointerId); });
+      canvas.addEventListener('pointermove', (e) => {
+        if (!dragActive) return;
+        const dx = e.clientX - lastDragX;
+        lastDragX = e.clientX;
+        targetX += dx * 0.025;
+        targetX = BABYLON.Scalar.Clamp(targetX, -moveClampX, moveClampX);
+      });
+      canvas.addEventListener('pointerup', (e) => { dragActive = false; canvas.releasePointerCapture?.(e.pointerId); });
+      canvas.addEventListener('pointercancel', () => { dragActive = false; });
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // Mobile On-Screen Controls
+      // ─────────────────────────────────────────────────────────────────────
+      const mobileControls = document.getElementById('mobile-controls');
+      const btnLeft = document.getElementById('btn-left');
+      const btnRight = document.getElementById('btn-right');
+      const btnAction = document.getElementById('btn-action');
+      
+      // Detect mobile/touch device and show controls
+      const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      if (isTouchDevice) {
+        mobileControls.classList.add('visible');
+        console.log('📱 Mobile controls enabled');
+      }
+      
+      // Left button
+      btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); input.left = true; btnLeft.classList.add('pressed'); }, { passive: false });
+      btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); input.left = false; btnLeft.classList.remove('pressed'); }, { passive: false });
+      btnLeft.addEventListener('touchcancel', () => { input.left = false; btnLeft.classList.remove('pressed'); });
+      
+      // Right button
+      btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); input.right = true; btnRight.classList.add('pressed'); }, { passive: false });
+      btnRight.addEventListener('touchend', (e) => { e.preventDefault(); input.right = false; btnRight.classList.remove('pressed'); }, { passive: false });
+      btnRight.addEventListener('touchcancel', () => { input.right = false; btnRight.classList.remove('pressed'); });
+      
+      // Action button (punch) - will be connected after attack groups load
+      let triggerPunch = null; // will be set after attack animations load
+
+      // Clear baked anims
+      kevinImport.animationGroups.forEach(g => { g.stop(); g.reset(); g.dispose(); });
+      if (kevinSkeleton) { kevinSkeleton.returnToRest(); kevinSkeleton.computeAbsoluteTransforms(); }
+
+      // Running anim
+      const runAnimImport = await BABYLON.SceneLoader.ImportMeshAsync(null, '', 'assets/kevin/glb/kevin_mixamo_running_anim.glb', scene);
+      updateLoadingProgress();
+      const srcRunGroup = runAnimImport.animationGroups[0];
+      const runningGroup = (srcRunGroup && kevinSkeleton)
+        ? buildAnimationGroupForSkeleton(srcRunGroup, kevinSkeleton, 'Running', null, { from: srcRunGroup.from, to: srcRunGroup.to })
+        : null;
+      runAnimImport.animationGroups.forEach(g => g.dispose());
+      runAnimImport.meshes.forEach(m => m.dispose());
+      runAnimImport.skeletons.forEach(s => s.dispose());
+      if (runningGroup) { runningGroup.loopAnimation = true; runningGroup.start(true, 1.0, runningGroup.from, runningGroup.to); }
+
+      // Attack animations (upper body overlay) - 2 punches + 2 kicks, cycle through them
+      const attackPaths = [
+        'assets/kevin/glb/kevin_mixamo_punch1_anim.glb',
+        'assets/kevin/glb/kevin_mixamo_punch2_anim.glb',
+        'assets/kevin/glb/kevin_mixamo_kick1_anim.glb',
+        'assets/kevin/glb/kevin_mixamo_kick2_anim.glb',
+      ];
+      const attackUpperBody = (name) => /Spine|Neck|Head|Shoulder|Arm|ForeArm|Hand|UpLeg|Leg|Foot|Toe/i.test(name);
+      const attackGroups = [];
+
+      for (const path of attackPaths) {
+        const attackImport = await BABYLON.SceneLoader.ImportMeshAsync(null, '', path, scene);
+        updateLoadingProgress();
+        const srcGroup = attackImport.animationGroups[0];
+        const attackGroup = (srcGroup && kevinSkeleton)
+          ? buildAnimationGroupForSkeleton(srcGroup, kevinSkeleton, 'Attack', attackUpperBody, { from: srcGroup.from, to: srcGroup.to })
+        : null;
+        attackImport.animationGroups.forEach(g => g.dispose());
+        attackImport.meshes.forEach(m => m.dispose());
+        attackImport.skeletons.forEach(s => s.dispose());
+        if (attackGroup) {
+          attackGroup.loopAnimation = false;
+          attackGroups.push(attackGroup);
+        }
+      }
+      console.log('Loaded', attackGroups.length, 'attack animations');
+
+      // Track attack state for collision detection
+      let isPunching = false;
+      let punchTimer = 0;
+      const punchDuration = 0.3; // seconds the hitbox is active
+      let currentAttackIndex = 0;
+      
+      // Punch function (called from keyboard and mobile button)
+      function doPunch() {
+        if (attackGroups.length === 0) return;
+        // Stop all attacks first
+        attackGroups.forEach(g => g.stop());
+        // Play the current attack (slower for visibility)
+        const attack = attackGroups[currentAttackIndex];
+        attack.start(false, 2.0, attack.from, attack.to);
+        // Cycle to next attack
+        currentAttackIndex = (currentAttackIndex + 1) % attackGroups.length;
+        isPunching = true;
+        punchTimer = punchDuration;
+      }
+      
+      // Set the triggerPunch function for mobile button
+      triggerPunch = doPunch;
+      
+      // Keyboard punch
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          doPunch();
+        }
+      }, { passive: false });
+      
+      // Mobile action button
+      btnAction.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        doPunch();
+        btnAction.classList.add('pressed');
+      }, { passive: false });
+      btnAction.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        btnAction.classList.remove('pressed');
+      }, { passive: false });
+      btnAction.addEventListener('touchcancel', () => {
+        btnAction.classList.remove('pressed');
+      });
+
+      // Create Kevin's punch hitbox (invisible, in front of him)
+      const kevinHitbox = BABYLON.MeshBuilder.CreateBox('kevinHitbox', { width: 1.5, height: 2, depth: 1.5 }, scene);
+      kevinHitbox.parent = kevinRoot;
+      kevinHitbox.position = new BABYLON.Vector3(0, 1, -1); // in front of Kevin
+      kevinHitbox.isVisible = false; // invisible
+      kevinHitbox.checkCollisions = false;
+
+      // Crisp voxel textures
+      kevinImport.meshes.forEach(mesh => {
+        const mat = mesh.material;
+        if (mat) {
+          ['albedoTexture', 'emissiveTexture', 'diffuseTexture'].forEach(key => {
+            const tex = mat[key];
+            if (tex && tex.updateSamplingMode) tex.updateSamplingMode(BABYLON.Texture.NEAREST_NEAREST_MIPNEAREST);
+          });
+          if (mat.getActiveTextures) mat.getActiveTextures().forEach(tex => tex.updateSamplingMode?.(BABYLON.Texture.NEAREST_NEAREST_MIPNEAREST));
+        }
+      });
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Enemy Spawning System
+      // ─────────────────────────────────────────────────────────────────────
+      const enemySpeed = 12; // how fast enemies chase Kevin (meters/sec) - faster so they arrive sooner
+      const enemyScale = 3; // punk scale multiplier
+      const spawnInterval = 1.5; // seconds between spawns
+      const spawnDistance = 35; // how far away punks spawn - closer so they appear faster (~3s travel time)
+      const spawnLeadTime = 3; // seconds to start spawning BEFORE section actually starts
+      let spawnTimer = 0;
+
+      // List of punk GLB files (optimized with decimation + draco)
+      const punkPaths = [
+        'assets/punks/beaniePunk/beanie_running_optimized.glb',
+        'assets/punks/blondePunk/blonde_running_optimized.glb',
+        'assets/punks/greenPunk/green_running_optimized.glb',
+        'assets/punks/hoodyPunk/hoody_running_optimized.glb',
+        'assets/punks/myPunk/myPunk_running_optimized.glb',
+        'assets/punks/purplePunk/purple_running_optimized.glb',
+        'assets/punks/zombiePunk/zombie_running_optimized.glb',
+      ];
+      
+      // Preload all punk models during loading screen
+      console.log('Preloading punk models...');
+      for (const punkPath of punkPaths) {
+        try {
+          // Just fetch to cache, don't instantiate (they'll load faster when spawned)
+          await BABYLON.SceneLoader.ImportMeshAsync(null, '', punkPath, scene).then(result => {
+            // Dispose immediately - just warming the cache
+            result.meshes.forEach(m => m.dispose());
+            result.animationGroups.forEach(g => g.dispose());
+            result.skeletons.forEach(s => s.dispose());
+          });
+          updateLoadingProgress();
+        } catch (e) {
+          console.warn('Failed to preload:', punkPath);
+          updateLoadingProgress(); // still count it
+        }
+      }
+      
+      // Loading complete - hide loading screen
+      console.log('✅ All assets loaded!');
+      hideLoadingScreen();
+
+      // Active enemies list
+      const activeEnemies = [];
+
+      // Spawn a punk from a random direction
+      async function spawnPunk() {
+        const punkPath = punkPaths[Math.floor(Math.random() * punkPaths.length)];
+        
+        try {
+          const punkImport = await BABYLON.SceneLoader.ImportMeshAsync(null, '', punkPath, scene);
+          const punkRoot = punkImport.meshes[0];
+          
+          // Convert quaternion to euler if needed
+          if (punkRoot.rotationQuaternion) {
+            punkRoot.rotation = punkRoot.rotationQuaternion.toEulerAngles();
+            punkRoot.rotationQuaternion = null;
+          }
+          
+          // Scale
+          punkRoot.scaling = new BABYLON.Vector3(enemyScale, enemyScale, enemyScale);
+          const bounds = punkRoot.getHierarchyBoundingVectors();
+          const yLift = -bounds.min.y + 0.02;
+          
+          // Random spawn direction (180 degrees in front of Kevin only)
+          const angle = (Math.random() - 0.5) * Math.PI; // -90° to +90° (front arc)
+          const curveX = debug_options.TRACK_CURVE_ENABLED ? trackCurveOffset : 0;
+          const spawnX = Math.sin(angle) * spawnDistance + (Math.random() - 0.5) * 10 + curveX;
+          const spawnZ = kevinZ + Math.abs(Math.cos(angle)) * spawnDistance; // always in front (+Z)
+          punkRoot.position = new BABYLON.Vector3(spawnX, yLift, spawnZ);
+          
+          // Play the baked running animation
+          if (punkImport.animationGroups.length > 0) {
+            const runAnim = punkImport.animationGroups[0];
+            runAnim.loopAnimation = true;
+            runAnim.start(true, 1.0, runAnim.from, runAnim.to);
+          }
+          
+          // Create hitbox
+          const hitbox = BABYLON.MeshBuilder.CreateBox('punkHitbox', { width: 1.5, height: 2, depth: 1.5 }, scene);
+          hitbox.parent = punkRoot;
+          hitbox.position = new BABYLON.Vector3(0, 1, 0);
+          hitbox.isVisible = false;
+          
+          // Add to active enemies
+          activeEnemies.push({
+            root: punkRoot,
+            hitbox: hitbox,
+            animGroup: punkImport.animationGroups[0] || null,
+            yLift: yLift,
+            alive: true,
+          });
+          
+          console.log('Spawned punk:', punkPath);
+        } catch (e) {
+          console.warn('Failed to spawn punk:', punkPath, e);
+        }
+      }
+
+      // Initial punk spawn (only if intro disabled, otherwise handled after intro)
+      if (!debug_options.INTRO_ENABLED) {
+        for (let i = 0; i < 3; i++) {
+          spawnPunk();
+        }
+      }
+
+      // Flying punks system (for ragdoll-like death) - EXTRA CRAZY!
+      const flyingPunks = [];
+      const punkLaunchSpeed = 25; // faster launch!
+      const punkFlyTowardCameraChance = 0.35; // 35% chance to fly at camera
+
+      function sendPunkFlying(punkRoot, punkRunGroup, hitDirection) {
+        // Unparent the hitbox so it doesn't interfere
+        const hitbox = punkRoot.getChildren().find(c => c.name.includes('Hitbox'));
+        if (hitbox) hitbox.dispose();
+        
+        // Stop run animation
+        if (punkRunGroup) punkRunGroup.stop();
+        
+        // Calculate launch direction - MORE UPWARD for comedy
+        let launchDir;
+        if (Math.random() < punkFlyTowardCameraChance) {
+          // FLY TOWARD CAMERA! (positive Z, some randomness)
+          launchDir = new BABYLON.Vector3(
+            (Math.random() - 0.5) * 0.8,   // more X randomness
+            0.8 + Math.random() * 0.5,     // higher upward!
+            1.0                            // toward camera (positive Z)
+          );
+          console.log('PUNK FLYING AT CAMERA!');
+        } else {
+          // Normal: fly away from Kevin with randomness
+          launchDir = hitDirection.normalize();
+          launchDir.x += (Math.random() - 0.5) * 1.2; // MORE X randomness
+          launchDir.y = 0.7 + Math.random() * 0.6;    // HIGHER upward component
+          launchDir.z += (Math.random() - 0.5) * 0.8; // more Z randomness
+        }
+        launchDir.normalize();
+        
+        // Add to flying list with velocity and CRAZY spin
+        flyingPunks.push({
+          root: punkRoot,
+          velocity: launchDir.scale(punkLaunchSpeed + Math.random() * 10), // variable speed
+          angularVel: new BABYLON.Vector3(
+            (Math.random() - 0.5) * 25,  // WAY more spin!
+            (Math.random() - 0.5) * 20,
+            (Math.random() - 0.5) * 25
+          ),
+          lifetime: 5.0, // longer to watch them tumble
+          bounceCount: 0,
+        });
+        
+        // BIG camera shake!
+        triggerCameraShake(1.2);
+        
+        // Screen flash! (pink/white)
+        const flashColor = Math.random() > 0.5 
+          ? new BABYLON.Color3(1, 0.5, 0.8)  // pink
+          : new BABYLON.Color3(1, 1, 1);      // white
+        triggerFlash(flashColor, 0.8);
+        
+        console.log('💥 PUNK SENT FLYING!');
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Intro Sequence
+      // ─────────────────────────────────────────────────────────────────────
+      const introOverlay = document.getElementById('intro-overlay');
+      const introBig = document.getElementById('intro-big');
+      const introSmall = document.getElementById('intro-small');
+      const hudElement = document.querySelector('.hud');
+      
+      // Intro camera keyframes
+      const introCamStart = { x: 0, y: 7.5, z: 4.41 };   // start position (close)
+      const introCamMid = { x: 0, y: 7.5, z: -7.04 };    // at 7 seconds (pulled back)
+      const introCamEnd = { x: -0.04, y: 7.48, z: -0.62 }; // at 14 seconds (gameplay position)
+      
+      // Intro text sequence
+      const introTexts = [
+        { time: 0.5, big: "This is Kevin.", small: "move left/right to dodge" },
+        { time: 5, big: "You might remember him.", small: "tap/space to punch - combos for bonus!" },
+        { time: 9.5, big: "He's back to get his revenge.", small: "kill as many cryptopunks as you can" },
+      ];
+      
+      let introTime = 0;
+      let introComplete = !debug_options.INTRO_ENABLED;
+      let currentIntroTextIndex = -1;
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // Wave System & Counters
+      // ─────────────────────────────────────────────────────────────────────
+      const scoreDisplay = document.getElementById('score-display');
+      const punchesCounter = document.getElementById('punches-counter');
+      const hitsCounter = document.getElementById('hits-counter');
+      
+      let gameTime = 0;  // time since game started (including intro)
+      let punchCount = 0;
+      let hitCount = 0;
+      let gameEnded = false;
+      
+      // Combo system
+      const comboDisplay = document.getElementById('combo-display');
+      const comboMessages = [
+        { hits: 3, text: "KILLER KEVIN!" },
+        { hits: 5, text: "KEVIN'S ON FIRE!" },
+        { hits: 8, text: "WOW KEVIN!" },
+        { hits: 12, text: "HOLY SHIT KEVIN!" },
+        { hits: 15, text: "UNSTOPPABLE!" },
+        { hits: 20, text: "GODLIKE KEVIN!" },
+      ];
+      let comboCount = 0;
+      let lastKillTime = 0;
+      const comboTimeout = 1.5; // seconds between kills to maintain combo
+      let longestStreak = 0;
+      let comboDisplayTimer = 0;
+      
+      function checkCombo() {
+        // Find the highest combo message we qualify for
+        let message = null;
+        for (let i = comboMessages.length - 1; i >= 0; i--) {
+          if (comboCount >= comboMessages[i].hits) {
+            message = comboMessages[i].text;
+            break;
+          }
+        }
+        
+        if (message) {
+          comboDisplay.textContent = message;
+          comboDisplay.classList.remove('visible');
+          void comboDisplay.offsetWidth; // force reflow for animation restart
+          comboDisplay.classList.add('visible');
+          comboDisplayTimer = 1.5; // show for 1.5 seconds
+        }
+        
+        // Track longest streak
+        if (comboCount > longestStreak) {
+          longestStreak = comboCount;
+        }
+      }
+      
+      function onKill() {
+        const now = gameTime;
+        if (now - lastKillTime < comboTimeout) {
+          comboCount++;
+        } else {
+          comboCount = 1;
+        }
+        lastKillTime = now;
+        checkCombo();
+      }
+      
+      // End screen
+      const endScreen = document.getElementById('end-screen');
+      const endStats = document.getElementById('end-stats');
+      const songEndTime = 156; // 2:36 in seconds
+      
+      function showEndScreen() {
+        if (gameEnded) return;
+        gameEnded = true;
+        
+        // Build stats HTML
+        endStats.innerHTML = `
+          Cryptopunks Killed: <span class="stat-value">${punchCount}</span><br>
+          Times Hit: <span class="stat-value">${hitCount}</span><br>
+          Longest Streak: <span class="stat-value">${longestStreak}</span>
+        `;
+        
+        endScreen.classList.add('visible');
+        console.log('🏆 Game Over! Stats:', { kills: punchCount, hits: hitCount, longestStreak });
+      }
+      
+      function updateCounters() {
+        punchesCounter.textContent = `KILLS: ${punchCount}`;
+        hitsCounter.textContent = `HITS: ${hitCount}`;
+      }
+      
+      // Section system
+      let currentSectionName = '';
+      let sectionSpawnTimer = 0;
+      let cameraSwingAngle = 0;
+      const cameraBaseZ = debug_options.CAM_Z;
+      
+      function getCurrentSection() {
+        for (let i = debug_options.SONG_SECTIONS.length - 1; i >= 0; i--) {
+          if (gameTime >= debug_options.SONG_SECTIONS[i].start) {
+            return debug_options.SONG_SECTIONS[i];
+          }
+        }
+        return null;
+      }
+      
+      // Get spawn section with lead time (spawn enemies early so they arrive on time)
+      function getSpawnSection() {
+        const spawnTime = gameTime + spawnLeadTime; // look ahead
+        for (let i = debug_options.SONG_SECTIONS.length - 1; i >= 0; i--) {
+          if (spawnTime >= debug_options.SONG_SECTIONS[i].start) {
+            return debug_options.SONG_SECTIONS[i];
+          }
+        }
+        return null;
+      }
+      
+      // All available backgrounds for cycling
+      const backgroundTypes = ['city', 'hills', 'crystals', 'pyramids', 'spirals', 'minimal'];
+      const colorSchemes = [
+        { line: [1.8, 0.1, 0.1], bg: [0.02, 0.02, 0.08] },      // red/navy
+        { line: [0.2, 1.5, 0.3], bg: [0.08, 0.04, 0.02] },      // green/orange
+        { line: [1.5, 1.4, 0.2], bg: [0.06, 0.06, 0.08] },      // yellow/silver
+        { line: [1.2, 1.1, 0.9], bg: [0.04, 0.04, 0.05] },      // beige/grey
+        { line: [1.8, 0.3, 1.0], bg: [0.02, 0.06, 0.03] },      // pink/dark green
+        { line: [1.5, 1.2, 0.4], bg: [0.03, 0.05, 0.08] },      // gold/light blue
+      ];
+      
+      function onSectionChange(section) {
+        console.log(`🎵 Section: ${section.name}`);
+        
+        // Apply colors (unless cycling)
+        if (section.colors !== 'cycle') {
+          applyColorScheme(section.colors);
+        }
+        
+        // Switch background (unless cycling)
+        if (section.background !== 'cycle') {
+          switchBackground(section.background);
+        }
+      }
+      
+      function applyColorScheme(colors) {
+        debug_options.LINE_COLOR = colors.line;
+        debug_options.MAIN_COLOR = colors.bg;
+        gridMat.setColor3('bgColor', new BABYLON.Color3(...colors.bg));
+        scene.clearColor = new BABYLON.Color4(colors.bg[0], colors.bg[1], colors.bg[2], 1);
+        scene.fogColor = new BABYLON.Color3(colors.bg[0] * 2, colors.bg[1] * 2, colors.bg[2] * 2);
+      }
+      
+      function switchBackground(bgType) {
+        // Helper to set visibility on mesh and all children (like windows)
+        function setMeshVisibility(mesh, vis) {
+          mesh.visibility = vis;
+          mesh.getChildMeshes().forEach(child => child.visibility = vis);
+        }
+        
+        // Hide all backgrounds (including child meshes like windows)
+        for (const bldg of buildings) setMeshVisibility(bldg.mesh, 0);
+        for (const hill of wavyHills) setMeshVisibility(hill.mesh, 0);
+        for (const crystal of crystalShapes) setMeshVisibility(crystal.mesh, 0);
+        for (const pyramid of pyramidShapes) setMeshVisibility(pyramid.mesh, 0);
+        for (const spiral of spiralShapes) setMeshVisibility(spiral.mesh, 0);
+        
+        // Show the selected background
+        switch(bgType) {
+          case 'city':
+            for (const bldg of buildings) setMeshVisibility(bldg.mesh, 1);
+            break;
+          case 'hills':
+            for (const hill of wavyHills) setMeshVisibility(hill.mesh, 1);
+            break;
+          case 'crystals':
+            for (const crystal of crystalShapes) setMeshVisibility(crystal.mesh, 1);
+            break;
+          case 'pyramids':
+            for (const pyramid of pyramidShapes) setMeshVisibility(pyramid.mesh, 1);
+            break;
+          case 'spirals':
+            for (const spiral of spiralShapes) setMeshVisibility(spiral.mesh, 1);
+            break;
+          case 'minimal':
+            // minimal = nothing extra
+            break;
+        }
+      }
+      
+      function applyCameraEffects(section, dt) {
+        // Camera Z position
+        const targetZ = section.camera.z !== undefined ? section.camera.z : cameraBaseZ;
+        cameraBasePos.z = BABYLON.Scalar.Lerp(cameraBasePos.z, targetZ, dt * 2);
+        
+        // Camera swing (updates base position, shake will add on top)
+        if (section.camera.swing > 0) {
+          const swingSpeed = section.camera.swing * Math.PI * 2 / (section.end - section.start);
+          cameraSwingAngle += swingSpeed * dt;
+          
+          let swingAmount = Math.sin(cameraSwingAngle) * 3; // 3 units side to side
+          
+          // Wild swing for final chorus
+          if (section.camera.wild) {
+            swingAmount *= (1 + Math.sin(cameraSwingAngle * 3) * 0.5);
+          }
+          
+          cameraBasePos.x = swingAmount;
+        } else {
+          cameraBasePos.x = BABYLON.Scalar.Lerp(cameraBasePos.x, 0, dt * 3);
+        }
+        
+        // Fixed camera target - always look at center of run zone (don't follow Kevin's X)
+        camera.setTarget(new BABYLON.Vector3(0, debug_options.CAM_TARGET_Y, kevinZ));
+      }
+      
+      // Set initial camera position for intro (set basePos, shake code will apply it)
+      if (debug_options.INTRO_ENABLED) {
+        cameraBasePos.x = introCamStart.x;
+        cameraBasePos.y = introCamStart.y;
+        cameraBasePos.z = introCamStart.z;
+      }
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // Music & Game Start
+      // ─────────────────────────────────────────────────────────────────────
+      let gameStarted = false;
+      const startOverlay = document.getElementById('start-overlay');
+      const music = new Audio(debug_options.MUSIC_PATH);
+      music.loop = false; // or true if you want it to loop
+      music.volume = 1.0;
+      
+      // Start game and music on first user interaction
+      async function startGame() {
+        if (!gameStarted) {
+          gameStarted = true;
+          startOverlay.classList.add('hidden');
+          
+          if (debug_options.MUSIC_ENABLED) {
+            try {
+              await music.play();
+              console.log('🎵 Music started!');
+            } catch (e) {
+              console.log('Music play failed:', e);
+            }
+          }
+          console.log('🎮 Game started!');
+        }
+      }
+      
+      // Start on click/tap/key
+      startOverlay.addEventListener('click', startGame);
+      startOverlay.addEventListener('touchstart', startGame);
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Main loop
+      // ─────────────────────────────────────────────────────────────────────
+      const baseRotationY = 0; // Kevin's forward-facing rotation (facing camera)
+      const maxTurnAngle = 0.35;     // max lean angle in radians (~20°)
+
+      scene.onBeforeRenderObservable.add(() => {
+        const dt = scene.getEngine().getDeltaTime() / 1000;
+        
+        // ─── Intro sequence (only runs after game started) ───
+        if (!gameStarted) return; // Don't run anything until player taps to start
+        
+        if (!introComplete && debug_options.INTRO_ENABLED) {
+          introTime += dt;
+          
+          // Camera animation (update cameraBasePos so shake code applies it)
+          if (introTime < 7) {
+            // Phase 1: Start -> Mid (0-7 seconds)
+            const t = introTime / 7;
+            const eased = t * t * (3 - 2 * t); // smoothstep
+            cameraBasePos.x = BABYLON.Scalar.Lerp(introCamStart.x, introCamMid.x, eased);
+            cameraBasePos.y = BABYLON.Scalar.Lerp(introCamStart.y, introCamMid.y, eased);
+            cameraBasePos.z = BABYLON.Scalar.Lerp(introCamStart.z, introCamMid.z, eased);
+          } else if (introTime < 14) {
+            // Phase 2: Mid -> End (7-14 seconds)
+            const t = (introTime - 7) / 7;
+            const eased = t * t * (3 - 2 * t); // smoothstep
+            cameraBasePos.x = BABYLON.Scalar.Lerp(introCamMid.x, introCamEnd.x, eased);
+            cameraBasePos.y = BABYLON.Scalar.Lerp(introCamMid.y, introCamEnd.y, eased);
+            cameraBasePos.z = BABYLON.Scalar.Lerp(introCamMid.z, introCamEnd.z, eased);
+          } else {
+            // Intro complete
+            introComplete = true;
+            introBig.classList.remove('visible');
+            introSmall.classList.remove('visible');
+            introOverlay.style.display = 'none';
+            hudElement.classList.add('visible');
+            scoreDisplay.classList.add('visible');
+            console.log('🎬 Intro complete!');
+          }
+          
+          // Text sequence
+          for (let i = introTexts.length - 1; i >= 0; i--) {
+            if (introTime >= introTexts[i].time && currentIntroTextIndex < i) {
+              currentIntroTextIndex = i;
+              // Fade out current text
+              introBig.classList.remove('visible');
+              introSmall.classList.remove('visible');
+              // Set new text after brief fade
+              setTimeout(() => {
+                introBig.textContent = introTexts[i].big;
+                introSmall.textContent = introTexts[i].small;
+                introBig.classList.add('visible');
+                introSmall.classList.add('visible');
+              }, 300);
+              break;
+            }
+          }
+          
+          // Always look at center of run zone during intro (fixed camera)
+          camera.setTarget(new BABYLON.Vector3(0, debug_options.CAM_TARGET_Y, kevinZ));
+        }
+
+        // ─── Beat pulse system (synced to BPM) ───
+        // 1/8th note interval at 135 BPM = 60 / 135 / 2 = 0.222 seconds
+        const eighthNoteInterval = 60 / debug_options.BPM / 2;
+        const beatPhase = (gameTime % eighthNoteInterval) / eighthNoteInterval;
+        // Sharp pulse that peaks at the beat and decays quickly
+        const beatPulse = Math.pow(1 - beatPhase, 3) * debug_options.BEAT_PULSE_INTENSITY;
+        
+        // Apply pulse to grid (brighten line color)
+        const baseLineColor = debug_options.LINE_COLOR;
+        const pulsedLineColor = new BABYLON.Color3(
+          baseLineColor[0] * (1 + beatPulse * 0.5),
+          baseLineColor[1] * (1 + beatPulse * 0.5),
+          baseLineColor[2] * (1 + beatPulse * 0.5)
+        );
+        gridMat.setColor3('lineColor', pulsedLineColor);
+        
+        // Apply pulse to glow layer intensity
+        glowLayer.intensity = 1.0 + beatPulse * 0.8;
+        
+        // Apply pulse to Tron shape materials
+        const shapePulse = 1 + beatPulse * 0.6;
+        tronShapeMat.emissiveColor = new BABYLON.Color3(0.3 * shapePulse, 0.4 * shapePulse, 1 * shapePulse);
+        tronShapeMat2.emissiveColor = new BABYLON.Color3(1 * shapePulse, 0.15 * shapePulse, 0.1 * shapePulse);
+        
+        // Apply pulse to window material
+        windowMat.emissiveColor = new BABYLON.Color3(1 * shapePulse, 0.2 * shapePulse, 0.15 * shapePulse);
+        
+        // Apply pulse to hill materials
+        hillMat.emissiveColor = new BABYLON.Color3(0.4 * shapePulse, 0.1 * shapePulse, 0.1 * shapePulse);
+        hillMat2.emissiveColor = new BABYLON.Color3(0.1 * shapePulse, 0.2 * shapePulse, 0.6 * shapePulse);
+
+        // Scroll the grid via shader uniform (creates illusion of motion)
+        gridOffsetZ += debug_options.SCROLL_SPEED * dt;
+        gridMat.setFloat('scrollOffset', gridOffsetZ);
+
+        // Scroll Tron shapes with the ground
+        const scrollDelta = debug_options.SCROLL_SPEED * dt;
+        const fadeDistance = 80;   // how far behind Kevin before fully faded (was 30)
+        const recycleDistance = 100; // when to recycle shapes (was 40)
+        
+        for (const shape of tronShapes) {
+          shape.mesh.position.z -= scrollDelta;
+          // Fade out shapes as they pass Kevin (rear fog effect)
+          const distBehind = kevinZ - shape.mesh.position.z;
+          if (distBehind > 0) {
+            shape.mesh.visibility = Math.max(0, 1 - distBehind / fadeDistance);
+          } else {
+            shape.mesh.visibility = 1;
+          }
+          // Recycle shapes that go behind Kevin
+          if (shape.mesh.position.z < kevinZ - recycleDistance) {
+            shape.mesh.position.z += numShapes * shapeSpacing;
+            shape.mesh.visibility = 1;
+          }
+        }
+
+        // Scroll all background elements
+        const allBackgrounds = [
+          { arr: buildings, spacing: buildingSpacing, count: numBuildings },
+          { arr: wavyHills, spacing: hillSpacing, count: numHills },
+          { arr: crystalShapes, spacing: crystalSpacing, count: numCrystals },
+          { arr: pyramidShapes, spacing: pyramidSpacing, count: numPyramids },
+          { arr: spiralShapes, spacing: spiralSpacing, count: numSpirals },
+        ];
+        
+        for (const bg of allBackgrounds) {
+          for (const item of bg.arr) {
+            item.mesh.position.z -= scrollDelta;
+            // Fade as passes Kevin (slower fade - was dt * 2)
+            const distBehind = kevinZ - item.mesh.position.z;
+            if (distBehind > 0 && item.mesh.visibility > 0) {
+              item.mesh.visibility = Math.max(0, item.mesh.visibility - dt * 0.5);
+            }
+            // Recycle (was kevinZ - 50)
+            if (item.mesh.position.z < kevinZ - recycleDistance) {
+              item.mesh.position.z += bg.count * bg.spacing;
+            }
+            // Rotate spirals
+            if (item.rotSpeed) {
+              item.mesh.rotation.y += item.rotSpeed * dt;
+            }
+          }
+        }
+        
+        // ─── Background/Color cycling for final sections ───
+        const section = getCurrentSection();
+        if (section && section.background === 'cycle') {
+          // Cycle through backgrounds on the beat
+          const cycleIndex = Math.floor(gameTime / (60 / debug_options.BPM)) % backgroundTypes.length;
+          const bgType = backgroundTypes[cycleIndex];
+          switchBackground(bgType);
+        }
+        if (section && section.colors === 'cycle') {
+          // Cycle through colors on the beat (slower)
+          const colorIndex = Math.floor(gameTime / (60 / debug_options.BPM * 2)) % colorSchemes.length;
+          applyColorScheme(colorSchemes[colorIndex]);
+        }
+
+        // Keyboard movement (only after intro, flipped: left key = screen left, right key = screen right)
+        if (introComplete) {
+          const dirX = (input.left ? 1 : 0) - (input.right ? 1 : 0);
+          targetX += dirX * debug_options.MOVE_SPEED_X * dt;
+          targetX = BABYLON.Scalar.Clamp(targetX, -moveClampX, moveClampX);
+        }
+
+        // Ease Kevin toward target position
+        const t = 1 - Math.exp(-strafeSpeed * dt);
+        kevinRoot.position.x = BABYLON.Scalar.Lerp(kevinRoot.position.x, targetX, t);
+
+        // Turn Kevin slightly in the direction of movement
+        const moveDelta = targetX - kevinRoot.position.x;
+        const turnAmount = BABYLON.Scalar.Clamp(moveDelta * 0.3, -maxTurnAngle, maxTurnAngle);
+        const targetRotY = baseRotationY + turnAmount;
+        kevinRoot.rotation.y = BABYLON.Scalar.Lerp(kevinRoot.rotation.y, targetRotY, t);
+
+        // ─── Punch timer ───
+        if (punchTimer > 0) {
+          punchTimer -= dt;
+          if (punchTimer <= 0) {
+            isPunching = false;
+          }
+        }
+
+        // ─── Combo display timer ───
+        if (comboDisplayTimer > 0) {
+          comboDisplayTimer -= dt;
+          if (comboDisplayTimer <= 0) {
+            comboDisplay.classList.remove('visible');
+          }
+        }
+        
+        // ─── Section-based system ───
+        if (gameStarted) {
+          gameTime += dt;
+          
+          // ─── Check for song end ───
+          if (gameTime >= songEndTime && !gameEnded) {
+            showEndScreen();
+          }
+          
+          // Find current section
+          const section = getCurrentSection();
+          if (section && section.name !== currentSectionName) {
+            currentSectionName = section.name;
+            onSectionChange(section);
+          }
+          
+          // Spawn based on UPCOMING section (with lead time so enemies arrive on beat)
+          const spawnSection = getSpawnSection();
+          if (spawnSection && spawnSection.maxEnemies > 0) {
+            let spawnInt = spawnSection.spawnInterval;
+            // Ramp up spawn rate for CHORUS_BREAKDOWN
+            if (spawnSection.spawnRamp) {
+              const spawnTime = gameTime + spawnLeadTime;
+              const progress = (spawnTime - spawnSection.start) / (spawnSection.end - spawnSection.start);
+              spawnInt = spawnSection.spawnInterval * (1.5 - progress); // speeds up over time
+            }
+            
+            sectionSpawnTimer -= dt;
+            if (sectionSpawnTimer <= 0 && activeEnemies.length < spawnSection.maxEnemies) {
+              spawnPunk();
+              sectionSpawnTimer = spawnInt;
+            }
+          }
+          
+          // Apply section camera effects
+          if (section && section.camera) {
+            applyCameraEffects(section, dt);
+          }
+          
+          // Apply glitch effect for sections that have it
+          if (section && section.glitch) {
+            glitchIntensity = 0.5 + Math.sin(gameTime * 10) * 0.3; // Pulsing glitch
+          } else {
+            glitchIntensity = Math.max(0, glitchIntensity - dt * 3); // Fade out
+          }
+        }
+
+        // ─── Enemy AI: chase Kevin ───
+        for (let i = activeEnemies.length - 1; i >= 0; i--) {
+          const enemy = activeEnemies[i];
+          if (!enemy.alive) continue;
+
+          // Calculate direction from enemy to Kevin
+          const toKevin = kevinRoot.position.subtract(enemy.root.position);
+          toKevin.y = 0; // keep on ground plane
+          const distToKevin = toKevin.length();
+
+          if (distToKevin > 0.5) {
+            // Normalize and move toward Kevin
+            const dir = toKevin.normalize();
+            enemy.root.position.addInPlace(dir.scale(enemySpeed * dt));
+
+            // Rotate enemy to face Kevin
+            const targetAngle = Math.atan2(dir.x, dir.z);
+            enemy.root.rotation.y = BABYLON.Scalar.LerpAngle(enemy.root.rotation.y, targetAngle, 0.1);
+          }
+
+          // Keep on ground
+          enemy.root.position.y = enemy.yLift;
+
+          // ─── Punch collision detection ───
+          if (isPunching && kevinHitbox.intersectsMesh(enemy.hitbox, false)) {
+            console.log('PUNCH HIT!');
+            enemy.alive = false;
+            punchCount++;
+            onKill(); // combo system
+            updateCounters();
+            // Calculate direction from Kevin to enemy (for launch direction)
+            const hitDir = enemy.root.position.subtract(kevinRoot.position);
+            sendPunkFlying(enemy.root, enemy.animGroup, hitDir);
+            // Remove from active list
+            activeEnemies.splice(i, 1);
+            continue;
+          }
+          
+          // ─── Enemy hit detection (punk reaches Kevin) ───
+          if (distToKevin < 1.5) {
+            console.log('💀 PUNK HIT KEVIN!');
+            enemy.alive = false;
+            hitCount++;
+            comboCount = 0; // reset combo when hit
+            updateCounters();
+            // Small camera shake when hit
+            triggerCameraShake(0.4);
+            // Red flash when hit
+            triggerFlash(new BABYLON.Color3(1, 0, 0), 0.5);
+            // Remove punk (they run through)
+            enemy.root.dispose();
+            activeEnemies.splice(i, 1);
+          }
+        }
+
+        // ─── Update flying punks (CRAZY ragdoll physics) ───
+        const gravity = -35; // stronger gravity for snappier falls
+        for (let i = flyingPunks.length - 1; i >= 0; i--) {
+          const fp = flyingPunks[i];
+          
+          // Apply gravity
+          fp.velocity.y += gravity * dt;
+          
+          // Move
+          fp.root.position.addInPlace(fp.velocity.scale(dt));
+          
+          // CRAZY spin (fake ragdoll tumble) - accelerate spin slightly
+          fp.root.rotation.x += fp.angularVel.x * dt;
+          fp.root.rotation.y += fp.angularVel.y * dt;
+          fp.root.rotation.z += fp.angularVel.z * dt;
+          
+          // Add some wobble to angular velocity for funnier tumbling
+          fp.angularVel.x += (Math.random() - 0.5) * 2;
+          fp.angularVel.z += (Math.random() - 0.5) * 2;
+          
+          // Bounce off ground - BOUNCIER!
+          if (fp.root.position.y < 0.5) {
+            fp.root.position.y = 0.5;
+            fp.bounceCount = (fp.bounceCount || 0) + 1;
+            
+            // Each bounce gets weaker but still fun
+            const bounciness = Math.max(0.2, 0.7 - fp.bounceCount * 0.15);
+            fp.velocity.y = Math.abs(fp.velocity.y) * bounciness;
+            fp.velocity.x *= 0.8;
+            fp.velocity.z *= 0.8;
+            
+            // Random spin boost on bounce!
+            fp.angularVel.x += (Math.random() - 0.5) * 10;
+            fp.angularVel.z += (Math.random() - 0.5) * 10;
+            
+            // Small shake on each bounce
+            if (fp.bounceCount <= 3) {
+              triggerCameraShake(0.15);
+            }
+          }
+          
+          // Lifetime countdown
+          fp.lifetime -= dt;
+          if (fp.lifetime <= 0) {
+            fp.root.dispose();
+            flyingPunks.splice(i, 1);
+          }
+        }
+
+        // ─── Update screen flash ───
+        if (flashIntensity > 0.01) {
+          flashMat.alpha = flashIntensity * 0.6;
+          flashIntensity *= 0.85; // fast decay
+        } else {
+          flashMat.alpha = 0;
+        }
+
+        // ─── Camera shake (applies on top of base position) ───
+        if (cameraShakeIntensity > 0.01) {
+          const shakeX = (Math.random() - 0.5) * cameraShakeIntensity;
+          const shakeY = (Math.random() - 0.5) * cameraShakeIntensity;
+          camera.position.x = cameraBasePos.x + shakeX;
+          camera.position.y = cameraBasePos.y + shakeY;
+          camera.position.z = cameraBasePos.z;
+          cameraShakeIntensity *= Math.exp(-cameraShakeDecay * dt);
+        } else {
+          camera.position.x = cameraBasePos.x;
+          camera.position.y = cameraBasePos.y;
+          camera.position.z = cameraBasePos.z;
+        }
+      });
+
+      engine.runRenderLoop(() => scene.render());
+      window.addEventListener('resize', () => engine.resize());
+      
+      // ─────────────────────────────────────────────────────────────────────
+      // Debug: Console function to jump to a section (defined AFTER everything loads)
+      // ─────────────────────────────────────────────────────────────────────
+      window.jumpTo = function(sectionNameOrTime) {
+        // Start game if not started
+        if (!gameStarted) {
+          gameStarted = true;
+          startOverlay.classList.add('hidden');
+          introComplete = true;
+          introOverlay.style.display = 'none';
+          hudElement.classList.add('visible');
+          scoreDisplay.classList.add('visible');
+        }
+        
+        let targetTime;
+        if (typeof sectionNameOrTime === 'number') {
+          targetTime = sectionNameOrTime;
+        } else {
+          // Find section by name
+          const section = debug_options.SONG_SECTIONS.find(s => 
+            s.name.toLowerCase() === sectionNameOrTime.toLowerCase()
+          );
+          if (section) {
+            targetTime = section.start;
+            console.log(`Jumping to ${section.name} at ${section.start}s`);
+          } else {
+            console.log('Available sections:', debug_options.SONG_SECTIONS.map(s => s.name).join(', '));
+            return;
+          }
+        }
+        
+        gameTime = targetTime;
+        music.currentTime = targetTime;
+        if (music.paused && debug_options.MUSIC_ENABLED) {
+          music.play();
+        }
+        
+        // Clear existing enemies for clean testing
+        activeEnemies.forEach(e => e.root.dispose());
+        activeEnemies.length = 0;
+        flyingPunks.forEach(fp => fp.root.dispose());
+        flyingPunks.length = 0;
+        
+        // Force section change
+        currentSectionName = '';
+        
+        console.log(`⏩ Jumped to ${targetTime}s`);
+      };
+      
+      console.log('✅ Game loaded! Debug commands available:');
+      console.log('   jumpTo("BRIDGE")  - jump to BRIDGE section');
+      console.log('   jumpTo("BREAKDOWN") - jump to BREAKDOWN section');  
+      console.log('   jumpTo(71) - jump to 71 seconds');
+      console.log('   Sections: INTRO, VERSE_1, CHORUS_1, VERSE_2, CHORUS_2, BRIDGE, BREAKDOWN, VERSE_FINAL, CHORUS_BREAKDOWN, FINAL_CHORUS');
+      
+      } catch (err) {
+        console.error('Fatal init error:', err);
+        throw err;
+      }
+    })();
+  </script>
+</body>
+</html>
