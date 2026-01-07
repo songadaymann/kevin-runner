@@ -1414,20 +1414,20 @@
       let punchTimer = 0;
       const punchDuration = 0.3; // seconds the hitbox is active
       let currentAttackIndex = 0;
-      
+
       // Punch function (called from keyboard and mobile button)
       function doPunch() {
         if (attackGroups.length === 0) return;
-        // Stop all attacks first
-        attackGroups.forEach(g => g.stop());
-        // Play the current attack (slower for visibility)
-        const attack = attackGroups[currentAttackIndex];
-        attack.start(false, 2.0, attack.from, attack.to);
-        // Cycle to next attack
-        currentAttackIndex = (currentAttackIndex + 1) % attackGroups.length;
-        isPunching = true;
-        punchTimer = punchDuration;
-      }
+            // Stop all attacks first
+            attackGroups.forEach(g => g.stop());
+            // Play the current attack (slower for visibility)
+            const attack = attackGroups[currentAttackIndex];
+            attack.start(false, 2.0, attack.from, attack.to);
+            // Cycle to next attack
+            currentAttackIndex = (currentAttackIndex + 1) % attackGroups.length;
+            isPunching = true;
+            punchTimer = punchDuration;
+          }
       
       // Set the triggerPunch function for mobile button
       triggerPunch = doPunch;
@@ -1652,8 +1652,8 @@
       
       // Intro text sequence
       const introTexts = [
-        { time: 0.5, big: "This is Kevin.", small: "move left/right to dodge" },
-        { time: 5, big: "You might remember him.", small: "tap/space to punch - combos for bonus!" },
+        { time: 0.5, big: "This is Kevin.", small: "tap/space to punch - combos for bonus!" },
+        { time: 5, big: "You might remember him.", small: "move left/right to dodge" },
         { time: 9.5, big: "He's back to get his revenge.", small: "kill as many cryptopunks as you can" },
       ];
       
@@ -2080,12 +2080,10 @@
           applyColorScheme(colorSchemes[colorIndex]);
         }
 
-        // Keyboard movement (only after intro, flipped: left key = screen left, right key = screen right)
-        if (introComplete) {
+        // Keyboard movement (allowed during intro too - let players practice!)
           const dirX = (input.left ? 1 : 0) - (input.right ? 1 : 0);
           targetX += dirX * debug_options.MOVE_SPEED_X * dt;
           targetX = BABYLON.Scalar.Clamp(targetX, -moveClampX, moveClampX);
-        }
 
         // Ease Kevin toward target position
         const t = 1 - Math.exp(-strafeSpeed * dt);
@@ -2112,7 +2110,7 @@
             comboDisplay.classList.remove('visible');
           }
         }
-        
+
         // ─── Section-based system ───
         if (gameStarted) {
           gameTime += dt;
