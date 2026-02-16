@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="x-ogp-key" content="64ee7b61-3b07-437b-bcea-565ee94a0ddc" id="ogp-key-meta" />
   <title>Kevin Runner</title>
   <!-- Google Fonts: Metal Mania (main) + Kranky (small) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -90,6 +91,56 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.7; transform: scale(1.05); }
     }
+    /* Health bar */
+    #health-bar-container {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    #health-bar-container.visible {
+      opacity: 1;
+    }
+    #health-bar-label {
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(14px, 2.5vw, 22px);
+      color: #ff3333;
+      text-shadow: 0 0 10px #ff3333, 2px 2px 0 #000;
+      margin-bottom: 4px;
+      letter-spacing: 2px;
+    }
+    #health-bar-track {
+      width: clamp(120px, 25vw, 220px);
+      height: clamp(14px, 2.5vw, 22px);
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3), inset 0 0 5px rgba(0, 0, 0, 0.5);
+    }
+    #health-bar-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #00ff66, #00cc44);
+      box-shadow: 0 0 10px #00ff44, inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+      transition: width 0.3s ease-out;
+      border-radius: 2px;
+    }
+    #health-bar-fill.low {
+      background: linear-gradient(180deg, #ff4444, #cc2222);
+      box-shadow: 0 0 10px #ff4444, inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+      animation: healthPulse 0.8s ease-in-out infinite;
+    }
+    #health-bar-fill.mid {
+      background: linear-gradient(180deg, #ffaa00, #cc8800);
+      box-shadow: 0 0 10px #ffaa00, inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+    }
+    @keyframes healthPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
     /* Score counters */
     #score-display {
       position: absolute;
@@ -103,18 +154,25 @@
     #score-display.visible {
       opacity: 1;
     }
-    #punches-counter {
+    #score-counter {
       font-family: 'Metal Mania', cursive;
-      font-size: clamp(24px, 5vw, 48px);
+      font-size: clamp(28px, 6vw, 52px);
+      color: #ffff00;
+      text-shadow: 0 0 10px #ffff00, 0 0 20px #ffaa00, 3px 3px 0 #000;
+    }
+    #punches-counter {
+      font-family: 'Kranky', cursive;
+      font-size: clamp(18px, 3.5vw, 32px);
       color: #00ff00;
-      text-shadow: 0 0 10px #00ff00, 0 0 20px #00aa00, 3px 3px 0 #000;
+      text-shadow: 0 0 10px #00ff00, 0 0 20px #00aa00, 2px 2px 0 #000;
+      margin-top: 2px;
     }
     #hits-counter {
       font-family: 'Kranky', cursive;
       font-size: clamp(18px, 3vw, 32px);
       color: #ff4444;
       text-shadow: 0 0 10px #ff4444, 0 0 20px #aa0000, 2px 2px 0 #000;
-      margin-top: 5px;
+      margin-top: 2px;
     }
     /* Combo display */
     #combo-display {
@@ -181,6 +239,52 @@
     #end-stats .stat-value {
       color: #ffff00;
       font-family: 'Metal Mania', cursive;
+    }
+    #end-score {
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(48px, 14vw, 120px);
+      color: #ffff00;
+      text-shadow: 0 0 30px #ffff00, 0 0 60px #ffaa00, 6px 6px 0 #000;
+      margin-bottom: 10px;
+    }
+    #play-again-btn {
+      margin-top: 30px;
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(20px, 5vw, 36px);
+      color: #00ff66;
+      background: rgba(0, 255, 100, 0.1);
+      border: 2px solid #00ff66;
+      border-radius: 8px;
+      padding: 12px 32px;
+      cursor: pointer;
+      text-shadow: 0 0 10px #00ff66, 2px 2px 0 #000;
+      box-shadow: 0 0 15px rgba(0, 255, 100, 0.3);
+      transition: background 0.2s, box-shadow 0.2s;
+      letter-spacing: 2px;
+    }
+    #play-again-btn:hover {
+      background: rgba(0, 255, 100, 0.25);
+      box-shadow: 0 0 25px rgba(0, 255, 100, 0.5);
+    }
+    /* Round announcement */
+    #round-announce {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Metal Mania', cursive;
+      font-size: clamp(48px, 14vw, 100px);
+      color: #00ff66;
+      text-shadow: 0 0 30px #00ff66, 0 0 60px #00aa44, 6px 6px 0 #000;
+      text-align: center;
+      pointer-events: none;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #round-announce.visible {
+      opacity: 1;
+      animation: comboPop 0.6s ease-out;
     }
     /* Mobile controls */
     #mobile-controls {
@@ -311,8 +415,17 @@
     <div id="loading-percent">0%</div>
   </div>
   
+  <!-- Health bar -->
+  <div id="health-bar-container">
+    <div id="health-bar-label">KEVIN</div>
+    <div id="health-bar-track">
+      <div id="health-bar-fill"></div>
+    </div>
+  </div>
+
   <!-- Score display -->
   <div id="score-display">
+    <div id="score-counter">SCORE: 0</div>
     <div id="punches-counter">KILLS: 0</div>
     <div id="hits-counter">HITS: 0</div>
   </div>
@@ -340,11 +453,19 @@
     <button class="mobile-btn mobile-btn-action" id="btn-action">PUNCH</button>
   </div>
   
+  <!-- Round announcement -->
+  <div id="round-announce"></div>
+
   <!-- End screen -->
   <div id="end-screen">
-    <div id="end-title">KEVIN WINS!</div>
+    <div id="end-title">GAME OVER</div>
+    <div id="end-score"></div>
     <div id="end-stats"></div>
+    <button id="play-again-btn">PLAY AGAIN</button>
   </div>
+
+  <!-- Play.fun SDK -->
+  <script src="https://sdk.play.fun"></script>
 
   <!-- Babylon core + GLTF loader -->
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
@@ -361,7 +482,31 @@
       window.addEventListener('unhandledrejection', (e) => {
         console.error('Unhandled promise rejection:', e.reason);
       });
-      
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Play.fun SDK
+      // ─────────────────────────────────────────────────────────────────────
+      let playfunSDK = null;
+      async function initPlayFun() {
+        if (typeof OpenGameSDK === 'undefined') {
+          console.warn('Play.fun SDK not loaded');
+          return;
+        }
+        try {
+          playfunSDK = new OpenGameSDK({ ui: { usePointsWidget: true } });
+          await playfunSDK.init();
+          console.log('Play.fun SDK initialized');
+        } catch (e) {
+          console.warn('Play.fun SDK failed:', e);
+          playfunSDK = null;
+        }
+      }
+      initPlayFun();
+
+      window.addEventListener('beforeunload', () => {
+        if (playfunSDK) playfunSDK.savePoints();
+      });
+
       // Loading screen elements
       const loadingScreen = document.getElementById('loading-screen');
       const loadingImageReveal = document.getElementById('loading-image-reveal');
@@ -419,7 +564,7 @@
         CRT_SCANLINE_INTENSITY: 0.15,  // how dark the scanlines are (0-1)
         CRT_SCANLINE_COUNT: 400,       // number of scanlines on screen
         // Intro sequence
-        INTRO_ENABLED: true,           // play intro sequence on start
+        INTRO_ENABLED: false,          // play intro sequence on start
         INTRO_DURATION: 14,            // total intro duration in seconds
         // Audio
         MUSIC_ENABLED: true,
@@ -1394,11 +1539,14 @@
       let isPunching = false;
       let punchTimer = 0;
       const punchDuration = 0.3; // seconds the hitbox is active
+      let punchCooldown = 0;
+      const punchCooldownTime = 0.15; // seconds before you can punch again after hitbox ends
       let currentAttackIndex = 0;
 
       // Punch function (called from keyboard and mobile button)
       function doPunch() {
         if (attackGroups.length === 0) return;
+        if (isPunching || punchCooldown > 0) return; // can't punch during cooldown
             // Stop all attacks first
             attackGroups.forEach(g => g.stop());
             // Play the current attack (slower for visibility)
@@ -1436,7 +1584,7 @@
       });
 
       // Create Kevin's punch hitbox (invisible, in front of him)
-      const kevinHitbox = BABYLON.MeshBuilder.CreateBox('kevinHitbox', { width: 1.5, height: 2, depth: 1.5 }, scene);
+      const kevinHitbox = BABYLON.MeshBuilder.CreateBox('kevinHitbox', { width: 2, height: 2, depth: 2 }, scene);
       kevinHitbox.parent = kevinRoot;
       kevinHitbox.position = new BABYLON.Vector3(0, 1, -1); // in front of Kevin
       kevinHitbox.isVisible = false; // invisible
@@ -1644,13 +1792,52 @@
       // Wave System & Counters
       // ─────────────────────────────────────────────────────────────────────
       const scoreDisplay = document.getElementById('score-display');
+      const scoreCounter = document.getElementById('score-counter');
       const punchesCounter = document.getElementById('punches-counter');
       const hitsCounter = document.getElementById('hits-counter');
-      
+      const healthBarContainer = document.getElementById('health-bar-container');
+      const healthBarFill = document.getElementById('health-bar-fill');
+      const roundAnnounce = document.getElementById('round-announce');
+
       let gameTime = 0;  // time since game started (including intro)
+      let songTime = 0;  // time within the current song loop
+      let loopStartOffset = 0; // gameTime at which current loop started
       let punchCount = 0;
       let hitCount = 0;
       let gameEnded = false;
+
+      // Health system
+      const maxHealth = 10;
+      let currentHealth = maxHealth;
+
+      // Loop system
+      let loopCount = 1;
+      const songDuration = 156; // 2:36 in seconds
+      const loopStartTime = 14; // skip intro on subsequent loops
+      let roundAnnounceTimer = 0;
+
+      // Difficulty scaling
+      function getDifficultyMultiplier(stat) {
+        const loop = loopCount - 1; // 0-based
+        switch (stat) {
+          case 'maxEnemies': return Math.min(3, 1 + loop * 0.3);
+          case 'spawnInterval': return Math.max(0.4, 1 / (1 + loop * 0.2));
+          case 'enemySpeed': return Math.min(2, 1 + loop * 0.1);
+          default: return 1;
+        }
+      }
+
+      function updateHealthBar() {
+        const pct = Math.max(0, currentHealth / maxHealth) * 100;
+        healthBarFill.style.width = pct + '%';
+        healthBarFill.classList.remove('low', 'mid');
+        if (pct <= 30) healthBarFill.classList.add('low');
+        else if (pct <= 60) healthBarFill.classList.add('mid');
+      }
+
+      function getScore() {
+        return Math.max(0, (punchCount * 10) + (longestStreak * 5) - (hitCount * 15));
+      }
       
       // Combo system
       const comboDisplay = document.getElementById('combo-display');
@@ -1715,47 +1902,112 @@
       
       // End screen
       const endScreen = document.getElementById('end-screen');
+      const endScore = document.getElementById('end-score');
       const endStats = document.getElementById('end-stats');
-      const songEndTime = 156; // 2:36 in seconds
-      
+      const playAgainBtn = document.getElementById('play-again-btn');
+
       function showEndScreen() {
         if (gameEnded) return;
         gameEnded = true;
-        
-        // Build stats HTML
+
+        const finalScore = getScore();
+
+        // Save points to Play.fun
+        if (playfunSDK) playfunSDK.savePoints();
+
+        endScore.textContent = finalScore;
         endStats.innerHTML = `
+          Round: <span class="stat-value">${loopCount}</span><br>
           Cryptopunks Killed: <span class="stat-value">${punchCount}</span><br>
           Times Hit: <span class="stat-value">${hitCount}</span><br>
           Longest Streak: <span class="stat-value">${longestStreak}</span>
         `;
-        
+
         endScreen.classList.add('visible');
-        console.log('🏆 Game Over! Stats:', { kills: punchCount, hits: hitCount, longestStreak });
+        console.log('Game Over! Stats:', { score: finalScore, round: loopCount, kills: punchCount, hits: hitCount, longestStreak });
       }
-      
+
+      playAgainBtn.addEventListener('click', () => location.reload());
+
       function updateCounters() {
+        scoreCounter.textContent = `SCORE: ${getScore()}`;
         punchesCounter.textContent = `KILLS: ${punchCount}`;
         hitsCounter.textContent = `HITS: ${hitCount}`;
       }
-      
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Loop System
+      // ─────────────────────────────────────────────────────────────────────
+      function startNextLoop() {
+        loopCount++;
+
+        // Clear all active enemies
+        for (const enemy of activeEnemies) {
+          enemy.root.dispose();
+        }
+        activeEnemies.length = 0;
+
+        // Clear flying punks
+        for (const fp of flyingPunks) {
+          fp.root.dispose();
+        }
+        flyingPunks.length = 0;
+
+        // Reset song position (skip intro on loops)
+        loopStartOffset = gameTime;
+        if (debug_options.MUSIC_ENABLED) {
+          music.currentTime = loopStartTime;
+          music.play().catch(() => {});
+        }
+
+        // Reset section tracking
+        currentSectionName = '';
+        sectionSpawnTimer = 0;
+
+        // Heal 2 HP as reward for surviving the loop
+        currentHealth = Math.min(maxHealth, currentHealth + 2);
+        updateHealthBar();
+
+        // Show round announcement
+        roundAnnounce.textContent = `ROUND ${loopCount}!`;
+        roundAnnounce.classList.remove('visible');
+        void roundAnnounce.offsetWidth;
+        roundAnnounce.classList.add('visible');
+        roundAnnounceTimer = 2.0;
+
+        // Streak bonus points at end of loop
+        if (playfunSDK && longestStreak > 0) {
+          playfunSDK.addPoints(longestStreak * 5);
+        }
+
+        console.log(`Round ${loopCount}! Difficulty multipliers: enemies=${getDifficultyMultiplier('maxEnemies').toFixed(1)}x, spawn=${getDifficultyMultiplier('spawnInterval').toFixed(2)}x, speed=${getDifficultyMultiplier('enemySpeed').toFixed(1)}x`);
+      }
+
       // Section system
       let currentSectionName = '';
       let sectionSpawnTimer = 0;
       let cameraSwingAngle = 0;
       const cameraBaseZ = debug_options.CAM_Z;
-      
+
+      function getSongTime() {
+        if (loopCount === 1) return gameTime;
+        // On subsequent loops, offset so we skip the intro
+        return loopStartTime + (gameTime - loopStartOffset);
+      }
+
       function getCurrentSection() {
+        const t = getSongTime();
         for (let i = debug_options.SONG_SECTIONS.length - 1; i >= 0; i--) {
-          if (gameTime >= debug_options.SONG_SECTIONS[i].start) {
+          if (t >= debug_options.SONG_SECTIONS[i].start) {
             return debug_options.SONG_SECTIONS[i];
           }
         }
         return null;
       }
-      
+
       // Get spawn section with lead time (spawn enemies early so they arrive on time)
       function getSpawnSection() {
-        const spawnTime = gameTime + spawnLeadTime; // look ahead
+        const spawnTime = getSongTime() + spawnLeadTime; // look ahead
         for (let i = debug_options.SONG_SECTIONS.length - 1; i >= 0; i--) {
           if (spawnTime >= debug_options.SONG_SECTIONS[i].start) {
             return debug_options.SONG_SECTIONS[i];
@@ -1881,16 +2133,25 @@
         if (!gameStarted) {
           gameStarted = true;
           startOverlay.classList.add('hidden');
-          
+
+          // Skip intro: jump music and game clock to verse 1, show HUD immediately
+          if (!debug_options.INTRO_ENABLED) {
+            gameTime = debug_options.INTRO_DURATION;
+            music.currentTime = debug_options.INTRO_DURATION;
+            introOverlay.style.display = 'none';
+            scoreDisplay.classList.add('visible');
+            healthBarContainer.classList.add('visible');
+          }
+
           if (debug_options.MUSIC_ENABLED) {
             try {
               await music.play();
-              console.log('🎵 Music started!');
+              console.log('Music started!');
             } catch (e) {
               console.log('Music play failed:', e);
             }
           }
-          console.log('🎮 Game started!');
+          console.log('Game started!');
         }
       }
       
@@ -1935,6 +2196,7 @@
             introSmall.classList.remove('visible');
             introOverlay.style.display = 'none';
             scoreDisplay.classList.add('visible');
+            healthBarContainer.classList.add('visible');
             console.log('🎬 Intro complete!');
           }
           
@@ -2073,12 +2335,16 @@
         const targetRotY = baseRotationY + turnAmount;
         kevinRoot.rotation.y = BABYLON.Scalar.Lerp(kevinRoot.rotation.y, targetRotY, t);
 
-        // ─── Punch timer ───
+        // ─── Punch timer & cooldown ───
         if (punchTimer > 0) {
           punchTimer -= dt;
           if (punchTimer <= 0) {
             isPunching = false;
+            punchCooldown = punchCooldownTime;
           }
+        }
+        if (punchCooldown > 0) {
+          punchCooldown -= dt;
         }
 
         // ─── Combo display timer ───
@@ -2089,45 +2355,63 @@
           }
         }
 
+        // ─── Round announcement timer ───
+        if (roundAnnounceTimer > 0) {
+          roundAnnounceTimer -= dt;
+          if (roundAnnounceTimer <= 0) {
+            roundAnnounce.classList.remove('visible');
+          }
+        }
+
         // ─── Section-based system ───
         if (gameStarted) {
           gameTime += dt;
-          
-          // ─── Check for song end ───
-          if (gameTime >= songEndTime && !gameEnded) {
+          songTime = getSongTime();
+
+          // ─── Check for song loop / game over ───
+          if (songTime >= songDuration && !gameEnded) {
+            if (currentHealth > 0) {
+              startNextLoop();
+            } else {
+              showEndScreen();
+            }
+          }
+
+          // ─── Check for death ───
+          if (currentHealth <= 0 && !gameEnded) {
             showEndScreen();
           }
-          
+
           // Find current section
           const section = getCurrentSection();
           if (section && section.name !== currentSectionName) {
             currentSectionName = section.name;
             onSectionChange(section);
           }
-          
+
           // Spawn based on UPCOMING section (with lead time so enemies arrive on beat)
           const spawnSection = getSpawnSection();
           if (spawnSection && spawnSection.maxEnemies > 0) {
-            let spawnInt = spawnSection.spawnInterval;
+            let spawnInt = spawnSection.spawnInterval * getDifficultyMultiplier('spawnInterval');
+            const scaledMaxEnemies = Math.floor(spawnSection.maxEnemies * getDifficultyMultiplier('maxEnemies'));
             // Ramp up spawn rate for CHORUS_BREAKDOWN
             if (spawnSection.spawnRamp) {
-              const spawnTime = gameTime + spawnLeadTime;
-              const progress = (spawnTime - spawnSection.start) / (spawnSection.end - spawnSection.start);
-              spawnInt = spawnSection.spawnInterval * (1.5 - progress); // speeds up over time
+              const progress = (songTime + spawnLeadTime - spawnSection.start) / (spawnSection.end - spawnSection.start);
+              spawnInt = spawnInt * (1.5 - progress); // speeds up over time
             }
-            
+
             sectionSpawnTimer -= dt;
-            if (sectionSpawnTimer <= 0 && activeEnemies.length < spawnSection.maxEnemies) {
+            if (sectionSpawnTimer <= 0 && activeEnemies.length < scaledMaxEnemies) {
               spawnPunk();
               sectionSpawnTimer = spawnInt;
             }
           }
-          
+
           // Apply section camera effects
           if (section && section.camera) {
             applyCameraEffects(section, dt);
           }
-          
+
           // Apply glitch effect for sections that have it
           if (section && section.glitch) {
             glitchIntensity = 0.5 + Math.sin(gameTime * 10) * 0.3; // Pulsing glitch
@@ -2137,6 +2421,7 @@
         }
 
         // ─── Enemy AI: chase Kevin ───
+        const scaledEnemySpeed = enemySpeed * getDifficultyMultiplier('enemySpeed');
         for (let i = activeEnemies.length - 1; i >= 0; i--) {
           const enemy = activeEnemies[i];
           if (!enemy.alive) continue;
@@ -2149,7 +2434,7 @@
           if (distToKevin > 0.5) {
             // Normalize and move toward Kevin
             const dir = toKevin.normalize();
-            enemy.root.position.addInPlace(dir.scale(enemySpeed * dt));
+            enemy.root.position.addInPlace(dir.scale(scaledEnemySpeed * dt));
 
             // Rotate enemy to face Kevin
             const targetAngle = Math.atan2(dir.x, dir.z);
@@ -2161,11 +2446,12 @@
 
           // ─── Punch collision detection ───
           if (isPunching && kevinHitbox.intersectsMesh(enemy.hitbox, false)) {
-            console.log('PUNCH HIT!');
             enemy.alive = false;
             punchCount++;
             onKill(); // combo system
             updateCounters();
+            // Award Play.fun points
+            if (playfunSDK) playfunSDK.addPoints(10);
             // Calculate direction from Kevin to enemy (for launch direction)
             const hitDir = enemy.root.position.subtract(kevinRoot.position);
             sendPunkFlying(enemy.root, enemy.animGroup, hitDir);
@@ -2173,12 +2459,13 @@
             activeEnemies.splice(i, 1);
             continue;
           }
-          
+
           // ─── Enemy hit detection (punk reaches Kevin) ───
           if (distToKevin < 1.5) {
-            console.log('💀 PUNK HIT KEVIN!');
             enemy.alive = false;
             hitCount++;
+            currentHealth--;
+            updateHealthBar();
             comboCount = 0; // reset combo when hit
             updateCounters();
             // Small camera shake when hit
@@ -2277,7 +2564,11 @@
           introComplete = true;
           introOverlay.style.display = 'none';
           scoreDisplay.classList.add('visible');
+          healthBarContainer.classList.add('visible');
         }
+        // Reset to loop 1 for clean debug
+        loopCount = 1;
+        loopStartOffset = 0;
         
         let targetTime;
         if (typeof sectionNameOrTime === 'number') {
